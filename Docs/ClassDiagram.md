@@ -10,10 +10,11 @@ classDiagram
         + string Id
         + string FirstName
         + string LastName
-        + string Birthday
+        + DateOnly Birthday
         + string Description
         + string Email
-        + string PasswordHash
+        + string HashedPassword
+        + DateOnly RegistrationDate
         + json<TagsEnum> ValueTags
     }
 
