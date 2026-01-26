@@ -5,5 +5,8 @@
         public int Id { get; set; }
         public int QuestionnaireId { get; set; }
         public string QPictureBase64 { get; set; }
+
+        // Relations
+        public Questionnaire Questionnaire { get; set; }
     }
 }
