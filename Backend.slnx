@@ -1,3 +1,7 @@
 <Solution>
-  <Project Path="WavLength/WavLength.csproj" />
+  <Project Path="Commons/Commons.csproj" Id="cd51d7d9-2de1-4165-9c44-e9765024181e" />
+  <Project Path="docker-compose.dcproj">
+    <Build />
+  </Project>
+  <Project Path="Wavelength/Wavelength.csproj" />
 </Solution>
