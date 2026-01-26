@@ -1,5 +1,0 @@
-<Solution>
-  <Project Path="API/API.csproj" />
-  <Project Path="Backend.AppHost/Backend.AppHost.csproj" />
-  <Project Path="Backend.ServiceDefaults/Backend.ServiceDefaults.csproj" />
-</Solution>
