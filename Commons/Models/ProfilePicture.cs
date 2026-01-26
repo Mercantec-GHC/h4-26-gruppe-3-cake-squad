@@ -10,6 +10,6 @@ namespace Commons.Models
         public string PPictureBase64 { get; set; }
 
         // Relations
-        public Questionnaire Questionnaire { get; set; }
+        public User User { get; set; }
     }
 }
