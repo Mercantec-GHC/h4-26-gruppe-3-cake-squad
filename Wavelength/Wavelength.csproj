@@ -16,4 +16,11 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.0.1" />
   </ItemGroup>
 
+	<ItemGroup>
+		<None Include ="..\Docs\**\*">
+			<Pack>False</Pack>
+			<Link>Docs\%(RecursiveDir)%(Filename)%(Extension)</Link>
+		</None>
+	</ItemGroup>
+
 </Project>
