@@ -1,0 +1,6 @@
+@WavLength_HostAddress = http://localhost:5113
+
+GET {{WavLength_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
