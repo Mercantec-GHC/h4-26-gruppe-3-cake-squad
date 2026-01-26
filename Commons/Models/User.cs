@@ -13,5 +13,8 @@ namespace Commons.Models
 		public string HashedPassword { get; set; }
 		public DateOnly RegistrationDate { get; set; }
 		public List<TagsEnum> ValueTags { get; set; }
+
+		// Relations
+		public List<Questionnaire> Questionnaires { get; set; }
 	}
 }
