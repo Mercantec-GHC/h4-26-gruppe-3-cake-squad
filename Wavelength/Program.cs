@@ -1,37 +1,64 @@
-var builder = WebApplication.CreateBuilder(args);
+using Microsoft.EntityFrameworkCore;
+using Wavelength.Data;
 
-// Add services to the container.
-
-builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
-
-// Add swagger gen.
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+namespace Wavelength
 {
-    app.MapOpenApi();
+	public class Program
+    {
+		public static void Main(string[] args)
+		{
+			var builder = WebApplication.CreateBuilder(args);
+
+			// Add services to the container.
+			builder.Services.AddControllers();
+
+			// Add OpenAPI/Swagger support
+			builder.Services.AddOpenApi();
+
+			// Configure DbContext with PostgreSQL
+			builder.Services.AddDbContext<AppDbContext>(
+				options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+			// Add swagger gen.
+			builder.Services.AddEndpointsApiExplorer();
+			builder.Services.AddSwaggerGen();
+
+            // Add health checks
+            builder.Services.AddHealthChecks();
+
+			var app = builder.Build();
+
+			// Configure the HTTP request pipeline.
+			if (app.Environment.IsDevelopment())
+			{
+				app.MapOpenApi();
+			}
+
+			// Enable middleware to serve generated Swagger as a JSON endpoint and the Swagger UI
+			app.UseSwagger();
+			app.UseSwaggerUI(options =>
+			{
+				options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+				options.RoutePrefix = "swagger";
+				options.AddSwaggerBootstrap().AddExperimentalFeatures();
+			});
+
+			// Enable static files to support swagger bootstrap
+			app.UseStaticFiles();
+
+			// Enable HTTPS redirection
+			app.UseHttpsRedirection();
+
+			// Enable authorization middleware
+			app.UseAuthorization();
+
+			// Map controller routes
+			app.MapControllers();
+
+			// Add health checks endpoint
+			app.MapHealthChecks("/health");
+
+			app.Run();
+		}
+	}
 }
-
-app.UseSwagger();
-app.UseSwaggerUI(options =>
-{
-	options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
-	options.RoutePrefix = "swagger";
-	options.AddSwaggerBootstrap().AddExperimentalFeatures();
-});
-
-app.UseStaticFiles();
-
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.Run();
