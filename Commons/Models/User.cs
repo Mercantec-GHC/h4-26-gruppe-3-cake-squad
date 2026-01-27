@@ -13,8 +13,8 @@ namespace Commons.Models
 		public List<TagsEnum> ValueTags { get; set; }
 
 		// Relations
-		public List<Questionnaire> Questionnaires { get; set; }
+		public Questionnaire Questionnaire { get; set; }
 		public List<UserRole> UserRoles { get; set; }
-		
-	}
+		public List<ProfilePicture> ProfilePictures { get; set; }
+    }
 }
