@@ -30,7 +30,7 @@ classDiagram
         + DateTime CreatedAt
         + DateTime UpdatedAt
         + string UserId
-        + json Questions
+        + json Quiz
     }
 
     class QuestionPicture {
@@ -67,17 +67,29 @@ classDiagram
         + int<RoleEnum> Role
     }
 
+    class QuestionScore {
+        + int PlayId
+        + DateTime CreatedAt
+        + DateTime UpdatedAt
+        + string UserId
+        + string QuizOwnerId
+        + int MatchProcent
+        + bool IsUserVisible
+    }
+
 Common --|> User
 Common --|> Questionnaire
 Common --|> QuestionPicture
 Common --|> ProfilePicture
 Common --|> RefreshToken
 Common --|> UserRole
+Common --|> QuestionScore
 
 UserRole --> User
 Questionnaire --> User
 QuestionPicture --> User
 ProfilePicture --> User
 RefreshToken --> User
+QuestionScore --> User
 
 QuestionPicture --> Questionnaire
