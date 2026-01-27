@@ -4,9 +4,8 @@ using System.Text;
 
 namespace Commons.Models
 {
-	public class Questionnaire
+	public class Questionnaire : Common<int>
 	{
-		public int Id { get; set; }
 		public string UserId { get; set; }
 		public string Questions { get; set; }
 	
