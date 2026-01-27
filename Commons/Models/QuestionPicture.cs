@@ -1,8 +1,7 @@
 ﻿namespace Commons.Models
 {
-    public class QuestionPicture
+    public class QuestionPicture : Common<int>
     {
-        public int Id { get; set; }
         public int QuestionnaireId { get; set; }
         public string QPictureBase64 { get; set; }
 
