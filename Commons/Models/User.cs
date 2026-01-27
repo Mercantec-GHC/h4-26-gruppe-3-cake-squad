@@ -10,7 +10,7 @@ namespace Commons.Models
 		public string Description { get; set; }
 		public string Email { get; set; }
 		public string HashedPassword { get; set; }
-		public List<TagsEnum> ValueTags { get; set; }
+		public List<TagsEnum> ValueTags { get; set; } = new();
 
 		// Relations
 		public Questionnaire Questionnaire { get; set; }
