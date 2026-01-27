@@ -37,8 +37,16 @@ classDiagram
         + string PPictureBase64
     }
 
+    class RefreshToken {
+        + string Id
+        + string UserId
+        + DateTime ExpiryDate
+        + bool IsRevoked
+    }
+
 Questionnaire --> User
 QuestionPicture --> User
 ProfilePicture --> User
+RefreshToken --> User
 
 QuestionPicture --> Questionnaire
