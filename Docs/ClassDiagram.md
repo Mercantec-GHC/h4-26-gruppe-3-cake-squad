@@ -10,10 +10,11 @@ classDiagram
         + string Id
         + string FirstName
         + string LastName
-        + string Birthday
+        + DateOnly Birthday
         + string Description
         + string Email
-        + string PasswordHash
+        + string HashedPassword
+        + DateOnly RegistrationDate
         + json<TagsEnum> ValueTags
     }
 
@@ -36,8 +37,16 @@ classDiagram
         + string PPictureBase64
     }
 
+    class RefreshToken {
+        + string Id
+        + string UserId
+        + DateTime ExpiryDate
+        + bool IsRevoked
+    }
+
 Questionnaire --> User
 QuestionPicture --> User
 ProfilePicture --> User
+RefreshToken --> User
 
 QuestionPicture --> Questionnaire
