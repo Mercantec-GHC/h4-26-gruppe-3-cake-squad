@@ -1,6 +1,6 @@
 ﻿using Commons.Enums;
 
-namespace Commons.Models.Quiz
+namespace Commons.Models.QuizModels
 {
     public class Question
     {

@@ -9,5 +9,8 @@ namespace Commons.Models
 	{
 		public string UserId { get; set; }
 		public RoleEnum Role { get; set; }
-	}
+
+		// Relations
+		public User User { get; set; }
+    }
 }
