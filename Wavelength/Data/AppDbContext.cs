@@ -1,4 +1,5 @@
-﻿using Commons.Models;
+﻿using Commons.Enums;
+using Commons.Models;
 using Commons.Models.QuizModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -16,9 +17,7 @@ namespace Wavelength.Data
         public DbSet<ProfilePicture> ProfilePictures { get; set; }
         public DbSet<QuizScore> QuestionScores { get; set; }
 
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
-        {
-        }
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -77,7 +76,7 @@ namespace Wavelength.Data
                 .HasOne(qs => qs.QuizOwner)
                 .WithOne()
                 .HasForeignKey<QuizScore>(qs => qs.QuizOwnerId);
-        }
+		}
 
         /// <summary>
         /// Deserializes a JSON string into a <see cref="Quiz"/> object.
