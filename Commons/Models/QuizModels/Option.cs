@@ -1,4 +1,4 @@
-﻿namespace Commons.Models.Quiz
+﻿namespace Commons.Models.QuizModels
 {
     public class Option
     {
