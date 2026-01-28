@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using Wavelength.Data;
+using Wavelength.Extensions.DependencyInjection;
+using Wavelength.Services;
 
 namespace Wavelength
 {
@@ -15,6 +17,12 @@ namespace Wavelength
 
 			// Add OpenAPI/Swagger support
 			builder.Services.AddOpenApi();
+
+            // Configure JWT Authentication
+            builder.Services.AddJwtAuthentication(builder.Configuration);
+
+			// Configure CORS policies
+			builder.Services.AddCorsPolicy(builder.Configuration);
 
 			// Configure DbContext with PostgreSQL
 			builder.Services.AddDbContext<AppDbContext>(
@@ -52,6 +60,9 @@ namespace Wavelength
 
             });
 
+            // Register JwtService
+            builder.Services.AddScoped<JwtService>();
+
             // Add health checks
             builder.Services.AddHealthChecks();
 
@@ -79,7 +90,11 @@ namespace Wavelength
 			// Enable HTTPS redirection
 			app.UseHttpsRedirection();
 
-			// Enable authorization middleware
+			// Enable CORS
+			app.UseCors(app.Environment.IsDevelopment() ? "AllowAllLocalhost" : "AllowFlutterApp");
+
+			// Enable authentication and authorization
+			app.UseAuthentication();
 			app.UseAuthorization();
 
 			// Map controller routes

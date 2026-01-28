@@ -1,6 +1,8 @@
-﻿using Commons.Models;
+﻿using Commons.Enums;
+using Commons.Models;
 using Commons.Models.QuizModels;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using System.Text.Json;
 
@@ -16,8 +18,51 @@ namespace Wavelength.Data
         public DbSet<ProfilePicture> ProfilePictures { get; set; }
         public DbSet<QuizScore> QuestionScores { get; set; }
 
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
+
+        public override int SaveChanges()
         {
+            UpdateTimestamps();
+            return base.SaveChanges();
+        }
+
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            UpdateTimestamps();
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+        
+        /// <summary>
+        /// Updates the creation and modification timestamps for tracked entities derived from the Common<T> base class
+        /// that are being added or modified in the current context.
+        /// </summary>
+        /// <remarks>This method sets the CreatedAt and UpdatedAt properties to the current UTC time for
+        /// new entities, and updates the UpdatedAt property for modified entities. It should be called before saving
+        /// changes to ensure timestamp consistency across entities.</remarks>
+        private void UpdateTimestamps()
+        {
+            var entries = ChangeTracker.Entries()
+                .Where(e =>
+                    //e.Entity is Common<int> ||    
+                    e.Entity.GetType().BaseType?.IsGenericType == true &&
+                    e.Entity.GetType().BaseType?.GetGenericTypeDefinition() == typeof(Common<>))
+                .Where(e =>
+                    e.State == EntityState.Added ||
+                    e.State == EntityState.Modified);
+
+            var now = DateTime.UtcNow;
+
+            foreach (var entry in entries)
+            {
+                dynamic entity = entry.Entity;
+
+                if (entry.State == EntityState.Added)
+                {
+                    entity.CreatedAt = now;
+                }
+
+                entity.UpdatedAt = now;
+            }
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -77,7 +122,7 @@ namespace Wavelength.Data
                 .HasOne(qs => qs.QuizOwner)
                 .WithOne()
                 .HasForeignKey<QuizScore>(qs => qs.QuizOwnerId);
-        }
+		}
 
         /// <summary>
         /// Deserializes a JSON string into a <see cref="Quiz"/> object.
