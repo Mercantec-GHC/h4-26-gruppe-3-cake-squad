@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Wavelength.Data;
+using Wavelength.Extensions.DependencyInjection;
+using Wavelength.Services;
 
 namespace Wavelength
 {
@@ -15,13 +17,19 @@ namespace Wavelength
 			// Add OpenAPI/Swagger support
 			builder.Services.AddOpenApi();
 
-			// Configure DbContext with PostgreSQL
-			builder.Services.AddDbContext<AppDbContext>(
+            // Configure JWT Authentication
+            builder.Services.AddJwtAuthentication(builder.Configuration);
+
+            // Configure DbContext with PostgreSQL
+            builder.Services.AddDbContext<AppDbContext>(
 				options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 			// Add swagger gen.
 			builder.Services.AddEndpointsApiExplorer();
 			builder.Services.AddSwaggerGen();
+
+            // Register JwtService
+            builder.Services.AddScoped<JwtService>();
 
             // Add health checks
             builder.Services.AddHealthChecks();
@@ -49,7 +57,8 @@ namespace Wavelength
 			// Enable HTTPS redirection
 			app.UseHttpsRedirection();
 
-			// Enable authorization middleware
+            // Enable authentication and authorization
+            app.UseAuthentication();
 			app.UseAuthorization();
 
 			// Map controller routes
