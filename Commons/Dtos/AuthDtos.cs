@@ -18,7 +18,7 @@
 
     public class AuthResponseDto
     {
-        public string AccessToken { get; set; }
+        public string JwtToken { get; set; }
         public string RefreshToken { get; set; }
         public int Expires { get; set; }
     }
