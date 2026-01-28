@@ -21,6 +21,16 @@ namespace Wavelength.Controllers
             this.jwtService = jwtService;
         }
 
+        /// <summary>
+        /// Registers a new user account with the provided registration details.
+        /// </summary>
+        /// <remarks>The user must be at least 18 years old, and the email address must be unique and in a
+        /// valid format. The password must be at least 8 characters long and meet complexity requirements. This action
+        /// does not authenticate the user after registration.</remarks>
+        /// <param name="dto">An object containing the user's registration information, including first name, last name, email address,
+        /// password, and birthday. All fields are required.</param>
+        /// <returns>An HTTP 200 OK result containing the created user if registration is successful; otherwise, a Bad Request
+        /// result with an error message describing the validation failure.</returns>
         [HttpPost("register")]
         public async Task<ActionResult> RegisterAsync(RegisterDto dto)
         {
@@ -37,7 +47,7 @@ namespace Wavelength.Controllers
             {
                 FirstName = dto.FirstName,
                 LastName = dto.LastName,
-                Email = dto.Email,
+                Email = dto.Email.ToLower(),
                 Birthday = dto.Birthday,
                 HashedPassword = BCrypt.Net.BCrypt.HashPassword(dto.Password), 
                 Description = string.Empty
@@ -47,6 +57,47 @@ namespace Wavelength.Controllers
             await dbContext.SaveChangesAsync();
 
             return Ok(user);
+        }
+
+        /// <summary>
+        /// Authenticates a user with the specified credentials and returns a JWT-based authentication response if
+        /// successful.
+        /// </summary>
+        /// <param name="dto">The login credentials, including the user's email address and password.</param>
+        /// <returns>An <see cref="ActionResult{T}"/> containing an <see cref="AuthResponseDto"/> with authentication details if
+        /// the login is successful; otherwise, an unauthorized result if the credentials are invalid.</returns>
+        [HttpPost("login")]
+        public async Task<ActionResult<AuthResponseDto>> LoginAsync(LoginDto dto)
+        {
+            //Find user with email and include UserRoles for JWT claims
+            var user = await dbContext.Users
+                .Include(u => u.UserRoles)
+                .FirstOrDefaultAsync(u => u.Email == dto.Email.ToLower());
+
+            if (user == null)
+                return Unauthorized("Invalid email or password.");
+
+            //Verify password
+            if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.HashedPassword))
+                return Unauthorized("Invalid email or password.");
+
+            return Ok(await jwtService.CreateAuthResponseAsync(user));
+        }
+
+        /// <summary>
+        /// Generates a new authentication response using a valid refresh token.
+        /// </summary>
+        /// <param name="dto">An object containing the refresh token to validate and use for generating a new authentication response.
+        /// Cannot be null.</param>
+        /// <returns>An <see cref="ActionResult{T}"/> containing an <see cref="AuthResponseDto"/> if the refresh token is valid;
+        /// otherwise, an unauthorized result if the token is invalid or expired.</returns>
+        [HttpPost("refresh")]
+        public async Task<ActionResult<AuthResponseDto>> RefreshAsync(RefreshTokenDto dto)
+        {
+            var user = await jwtService.ValidateRefreshTokenAsync(dto.Token);
+            if (user == null) return Unauthorized("Invalid or expired refresh token.");
+
+            return Ok(await jwtService.CreateAuthResponseAsync(user));
         }
 
         /// <summary>
