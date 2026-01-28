@@ -65,7 +65,7 @@ namespace Wavelength.Services
         /// token unpredictability. The operation may take longer if the token space is heavily populated, as it retries
         /// until a unique token is found.</remarks>
         /// <returns>A base64-encoded string representing a cryptographically secure, unique refresh token.</returns>
-        public async Task<string> GenerateRefreshToken()
+        public async Task<string> GenerateRefreshTokenAsync()
         {
             while (true)
             {
@@ -88,13 +88,15 @@ namespace Wavelength.Services
         /// <param name="refreshToken">The refresh token to validate. Cannot be null or empty.</param>
         /// <returns>The user associated with the valid refresh token; otherwise, null if the token is invalid, revoked, expired,
         /// or not found.</returns>
-        public async Task<User?> ValidateRefreshToken(string refreshToken)
+        public async Task<User?> ValidateRefreshTokenAsync(string refreshToken)
         {
             // Check if the refresh token is provided
             if (string.IsNullOrEmpty(refreshToken)) return null;
 
             // Check if the refresh token exists, is not revoked, and has not expired
-            var token = await dbContext.RefreshTokens.Include(rt => rt.User).FirstOrDefaultAsync(rt => rt.Id == refreshToken && !rt.IsRevoked && rt.ExpiryDate > DateTime.UtcNow);
+            var token = await dbContext.RefreshTokens.Include(rt => rt.User)
+                .ThenInclude(u => u.UserRoles)
+                .FirstOrDefaultAsync(rt => rt.Id == refreshToken && !rt.IsRevoked && rt.ExpiryDate > DateTime.UtcNow);
             if (token == null) return null;
 
             // Revoke the used refresh token
@@ -112,10 +114,10 @@ namespace Wavelength.Services
         /// <param name="user">The user for whom the authentication response is generated. Cannot be null.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains an <see cref="AuthResponseDto"/>
         /// with the generated JWT token, refresh token, and token expiry information.</returns>
-        public async Task<AuthResponseDto> CreateAuthResponse(User user)
+        public async Task<AuthResponseDto> CreateAuthResponseAsync(User user)
         {
             var jwtToken = GenerateJwtToken(user);
-            var refreshTokenString = await GenerateRefreshToken();
+            var refreshTokenString = await GenerateRefreshTokenAsync();
             int expiry = 1800;
 
             // Store refresh token in database

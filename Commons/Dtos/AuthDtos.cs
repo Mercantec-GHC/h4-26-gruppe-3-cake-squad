@@ -22,4 +22,9 @@
         public string RefreshToken { get; set; }
         public int Expires { get; set; }
     }
+
+    public class RefreshTokenDto
+    {
+        public string Token { get; set; }
+    }
 }
