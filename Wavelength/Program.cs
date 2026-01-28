@@ -81,7 +81,7 @@ namespace Wavelength
 				options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
 				options.RoutePrefix = "swagger";
 				options.AddSwaggerBootstrap().AddExperimentalFeatures();
-				options.InjectJavascript("/swagger/auth.js");
+				options.InjectJavascript("/swagger/login.js");
             });
 
 			// Enable static files to support swagger bootstrap
