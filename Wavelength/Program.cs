@@ -20,8 +20,11 @@ namespace Wavelength
             // Configure JWT Authentication
             builder.Services.AddJwtAuthentication(builder.Configuration);
 
-            // Configure DbContext with PostgreSQL
-            builder.Services.AddDbContext<AppDbContext>(
+			// Configure CORS policies
+			builder.Services.AddCorsPolicy(builder.Configuration);
+
+			// Configure DbContext with PostgreSQL
+			builder.Services.AddDbContext<AppDbContext>(
 				options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 			// Add swagger gen.
@@ -57,8 +60,11 @@ namespace Wavelength
 			// Enable HTTPS redirection
 			app.UseHttpsRedirection();
 
-            // Enable authentication and authorization
-            app.UseAuthentication();
+			// Enable CORS
+			app.UseCors(app.Environment.IsDevelopment() ? "AllowAllLocalhost" : "AllowFlutterApp");
+
+			// Enable authentication and authorization
+			app.UseAuthentication();
 			app.UseAuthorization();
 
 			// Map controller routes
