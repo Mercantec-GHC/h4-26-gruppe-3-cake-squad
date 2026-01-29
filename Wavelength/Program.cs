@@ -20,16 +20,18 @@ namespace Wavelength
             // Configure JWT Authentication
             builder.Services.AddJwtAuthentication(builder.Configuration);
 
-            // Configure DbContext with PostgreSQL
-            builder.Services.AddDbContext<AppDbContext>(
+			// Configure CORS policies
+			builder.Services.AddCorsPolicy(builder.Configuration);
+
+			// Configure DbContext with PostgreSQL
+			builder.Services.AddDbContext<AppDbContext>(
 				options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 			// Add swagger gen.
-			builder.Services.AddEndpointsApiExplorer();
-			builder.Services.AddSwaggerGen();
+			builder.Services.AddSwaggerGenWithAuth();
 
-            // Register JwtService
-            builder.Services.AddScoped<JwtService>();
+			// Register JwtService
+			builder.Services.AddScoped<JwtService>();
 
             // Add health checks
             builder.Services.AddHealthChecks();
@@ -49,7 +51,8 @@ namespace Wavelength
 				options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
 				options.RoutePrefix = "swagger";
 				options.AddSwaggerBootstrap().AddExperimentalFeatures();
-			});
+				options.InjectJavascript("/swagger/login.js");
+            });
 
 			// Enable static files to support swagger bootstrap
 			app.UseStaticFiles();
@@ -57,8 +60,11 @@ namespace Wavelength
 			// Enable HTTPS redirection
 			app.UseHttpsRedirection();
 
-            // Enable authentication and authorization
-            app.UseAuthentication();
+			// Enable CORS
+			app.UseCors(app.Environment.IsDevelopment() ? "AllowAllLocalhost" : "AllowFlutterApp");
+
+			// Enable authentication and authorization
+			app.UseAuthentication();
 			app.UseAuthorization();
 
 			// Map controller routes

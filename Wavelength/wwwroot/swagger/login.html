@@ -1,0 +1,274 @@
+﻿<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8" />
+    <title>Login</title>
+    <link href="/_content/Swagger.Bootstrap/swagger.bootstrap.css" rel="stylesheet" type="text/css">
+    <script src="/swagger/theme.js" type="text/javascript"></script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .card {
+            width: 380px;
+        }
+
+        .card-header {
+            margin: 0;
+            font-size: calc(1.275rem + 0.3vw) !important;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 1rem !important;
+        }
+
+        .form-control {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        label {
+            display: inline-block;
+        }
+
+        .form-label {
+            margin-bottom: .5rem;
+        }
+
+        .validation-message {
+            color: #e50000;
+            margin-bottom: 1rem;
+        }
+
+        .btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: .5rem;
+        }
+
+        .btn-google img {
+            width: 18px;
+            height: 18px;
+        }
+
+        .btn.disabled,
+        .btn:disabled,
+        fieldset:disabled .btn {
+            color: var(--bs-btn-disabled-color);
+            pointer-events: none;
+            background-color: var(--bs-btn-disabled-bg);
+            border-color: var(--bs-btn-disabled-border-color);
+            opacity: var(--bs-btn-disabled-opacity);
+        }
+
+        .divider {
+            text-align: center;
+            color: var(--bs-border-color);
+            margin: .5rem 0;
+            position: relative;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            width: 40%;
+            height: 1px;
+            background: var(--bs-border-color);
+        }
+
+        .divider::before {
+            left: 0;
+        }
+
+        .divider::after {
+            right: 0;
+        }
+
+        .visually-hidden,
+        .visually-hidden-focusable:not(:focus):not(:focus-within) {
+            width: 1px !important;
+            height: 1px !important;
+            padding: 0 !important;
+            margin: -1px !important;
+            overflow: hidden !important;
+            clip: rect(0, 0, 0, 0) !important;
+            white-space: nowrap !important;
+            border: 0 !important;
+        }
+
+            .visually-hidden-focusable:not(:focus):not(:focus-within):not(caption),
+            .visually-hidden:not(caption) {
+                position: absolute !important;
+            }
+
+            .visually-hidden *,
+            .visually-hidden-focusable:not(:focus):not(:focus-within) * {
+                overflow: hidden !important;
+            }
+
+        .spinner-border,
+        .spinner-grow {
+            display: inline-block;
+            flex-shrink: 0;
+            width: var(--bs-spinner-width);
+            height: var(--bs-spinner-height);
+            vertical-align: var(--bs-spinner-vertical-align);
+            border-radius: 50%;
+            animation: var(--bs-spinner-animation-speed) linear infinite var(--bs-spinner-animation-name);
+        }
+
+        @keyframes spinner-border {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinner-border {
+            --bs-spinner-width: 2rem;
+            --bs-spinner-height: 2rem;
+            --bs-spinner-vertical-align: -0.125em;
+            --bs-spinner-border-width: 0.25em;
+            --bs-spinner-animation-speed: 0.75s;
+            --bs-spinner-animation-name: spinner-border;
+            border: var(--bs-spinner-border-width) solid currentcolor;
+            border-right-color: transparent;
+        }
+
+        .spinner-border-sm {
+            --bs-spinner-width: 1rem;
+            --bs-spinner-height: 1rem;
+            --bs-spinner-border-width: 0.2em;
+        }
+
+        .d-none {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="card shadow">
+        <h1 class="card-header">Login</h1>
+        <div class="card-body">
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label" for="email">Email</label>
+                    <input class="form-control"
+                           type="email"
+                           id="email"
+                           name="email"
+                           placeholder="Email address"
+                           required />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Password</label>
+                    <input class="form-control"
+                           type="password"
+                           id="password"
+                           name="password"
+                           placeholder="••••••••"
+                           required />
+                </div>
+
+                <div class="validation-message" id="errorMessage"></div>
+
+                <button type="submit" class="btn btn-primary" id="btnLogin">
+                    <div class="spinner-border spinner-border-sm d-none" role="status" id="spinner">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <span id="loginText">Login</span>
+                </button>
+            </form>
+
+            <div class="divider">or</div>
+
+            <button class="btn btn-secondary btn-google" type="button" id="btnGoogle" disabled>
+                <img src="https://www.gstatic.com/images/branding/product/1x/gsa_64dp.png" alt="Google logo" />
+                <span>Continue with Google</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById("loginForm");
+
+        form.addEventListener("submit", async function (event) {
+            event.preventDefault();
+
+            const email = document.getElementById("email");
+            const password = document.getElementById("password");
+            const btnLogin = document.getElementById("btnLogin");
+            //const btnGoogle = document.getElementById("btnGoogle");
+            const spinner = document.getElementById("spinner");
+            const loginText = document.getElementById("loginText");
+
+            email.disabled = true;
+            password.disabled = true;
+            btnLogin.disabled = true;
+            //btnGoogle.disabled = true;
+            spinner.classList.remove("d-none");
+            loginText.innerText = "logging in";
+
+            try {
+                const response = await fetch("/auth/login", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        email: email.value,
+                        password: password.value
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log("Login success:", data);
+
+                    if (window.opener) {
+                        window.opener.postMessage({
+                            type: "login-complete", payload: data
+                        }, "*");
+                    }
+                    window.close();
+                }
+                else {
+                    const errorMessage = document.getElementById("errorMessage");
+                    const data = await response.text();
+                    errorMessage.innerText = data;
+                }
+
+            } catch (error) {
+                console.error(error);
+
+                const errorMessage = document.getElementById("errorMessage");
+                errorMessage.innerText = "Failed to fetch '/auth/login'";
+            }
+
+            email.disabled = false;
+            password.disabled = false;
+            btnLogin.disabled = false;
+            //btnGoogle.disabled = false;
+            spinner.classList.add("d-none");
+            loginText.innerText = "Log in";
+        });
+
+        window.addEventListener("DOMContentLoaded", () => {
+            const emailInput = document.getElementById("email");
+            if (emailInput) {
+                emailInput.focus();
+            }
+        });
+    </script>
+</body>
+</html>
