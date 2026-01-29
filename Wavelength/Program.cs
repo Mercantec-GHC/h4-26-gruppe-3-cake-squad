@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi;
 using Wavelength.Data;
 using Wavelength.Extensions.DependencyInjection;
 using Wavelength.Services;
@@ -29,39 +28,10 @@ namespace Wavelength
 				options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 			// Add swagger gen.
-			//builder.Services.AddEndpointsApiExplorer();
-			builder.Services.AddSwaggerGen(options =>
-			{
-				options.SwaggerDoc("v1", new OpenApiInfo
-				{
-					Version = "v1",
-					Title = "Wavelength API",
-					Description = "An ASP.NET Core Web API for Wavelength application"
-				});
+			builder.Services.AddSwaggerGenWithAuth();
 
-                // Configures the Swagger Login screen.
-                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-                {
-                    In = ParameterLocation.Header,
-                    Description = "Insert your token here. A token can be obtained from \"/auth/login\" using a username and a password or from \"/auth/refresh\" using a short lived token issued by the server.",
-                    Name = "Authorization",
-                    Type = SecuritySchemeType.Http,
-                    BearerFormat = "JWT",
-                    Scheme = "Bearer"
-                });
-
-                // Inkluder XML kommentarer
-                var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
-                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-                if (File.Exists(xmlPath))
-                {
-                    options.IncludeXmlComments(xmlPath);
-                }
-
-            });
-
-            // Register JwtService
-            builder.Services.AddScoped<JwtService>();
+			// Register JwtService
+			builder.Services.AddScoped<JwtService>();
 
             // Add health checks
             builder.Services.AddHealthChecks();
