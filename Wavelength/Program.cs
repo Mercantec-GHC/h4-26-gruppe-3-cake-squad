@@ -28,11 +28,10 @@ namespace Wavelength
 				options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 			// Add swagger gen.
-			builder.Services.AddEndpointsApiExplorer();
-			builder.Services.AddSwaggerGen();
+			builder.Services.AddSwaggerGenWithAuth();
 
-            // Register JwtService
-            builder.Services.AddScoped<JwtService>();
+			// Register JwtService
+			builder.Services.AddScoped<JwtService>();
 
             // Add health checks
             builder.Services.AddHealthChecks();
@@ -52,7 +51,8 @@ namespace Wavelength
 				options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
 				options.RoutePrefix = "swagger";
 				options.AddSwaggerBootstrap().AddExperimentalFeatures();
-			});
+				options.InjectJavascript("/swagger/login.js");
+            });
 
 			// Enable static files to support swagger bootstrap
 			app.UseStaticFiles();
