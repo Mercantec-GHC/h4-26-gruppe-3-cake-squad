@@ -16,5 +16,6 @@ namespace Commons.Models
 		public Questionnaire Questionnaire { get; set; }
 		public List<UserRole> UserRoles { get; set; }
 		public List<ProfilePicture> ProfilePictures { get; set; }
-    }
+		public List<Participant> Participants { get; set; }
+	}
 }
