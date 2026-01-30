@@ -1,4 +1,4 @@
-﻿namespace Commons.Models
+﻿namespace Commons.Models.DatabaseModels
 {
     public class QuizScore : Common<int>
     {

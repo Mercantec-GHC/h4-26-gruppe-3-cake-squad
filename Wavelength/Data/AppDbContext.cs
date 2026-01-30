@@ -1,5 +1,4 @@
-﻿using Commons.Enums;
-using Commons.Models;
+﻿using Commons.Models.DatabaseModels;
 using Commons.Models.QuizModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;

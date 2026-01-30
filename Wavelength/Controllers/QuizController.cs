@@ -1,5 +1,5 @@
 ﻿using Commons.Dtos;
-using Commons.Models;
+using Commons.Models.DatabaseModels;
 using Commons.Models.QuizModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

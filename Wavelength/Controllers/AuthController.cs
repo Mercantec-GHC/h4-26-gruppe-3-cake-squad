@@ -1,5 +1,5 @@
 ﻿using Commons.Dtos;
-using Commons.Models;
+using Commons.Models.DatabaseModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;

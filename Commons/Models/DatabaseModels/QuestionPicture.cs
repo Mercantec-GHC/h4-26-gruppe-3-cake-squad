@@ -1,4 +1,4 @@
-﻿namespace Commons.Models
+﻿namespace Commons.Models.DatabaseModels
 {
     public class QuestionPicture : Common<int>
     {

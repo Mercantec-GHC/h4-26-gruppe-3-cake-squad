@@ -1,6 +1,7 @@
 ﻿using Commons.Enums;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Commons.Models
+namespace Commons.Models.DatabaseModels
 {
 	public class User : Common<string>
 	{
@@ -16,5 +17,13 @@ namespace Commons.Models
 		public Questionnaire Questionnaire { get; set; }
 		public List<UserRole> UserRoles { get; set; }
 		public List<ProfilePicture> ProfilePictures { get; set; }
+
+        // Computed property for roles
+        [NotMapped]
+        public List<RoleEnum> Roles => (UserRoles ?? new List<UserRole>())
+			.Select(ur => ur.Role)
+			.Union(new[] { RoleEnum.User })
+			.Distinct()
+			.ToList();
     }
 }
