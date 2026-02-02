@@ -2,9 +2,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Wavelength.Data;
 using Commons.Models.Dtos;
+using Commons.Models.Database;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
-using Commons.Models.Database;
 
 namespace Wavelength.Controllers
 {
