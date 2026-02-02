@@ -6,6 +6,7 @@ using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Wavelength.Data;
 using Wavelength.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Wavelength.Controllers
 {

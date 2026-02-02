@@ -1,4 +1,4 @@
-﻿namespace Commons.Dtos
+﻿namespace Commons.Models.Dtos
 {
     public class MeResponseDto
     {
