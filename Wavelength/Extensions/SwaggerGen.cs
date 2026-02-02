@@ -1,6 +1,6 @@
 ﻿using Microsoft.OpenApi;
 
-namespace Wavelength.Extensions.DependencyInjection
+namespace Microsoft.Extensions.DependencyInjection
 {
     /// <summary>
     /// Provides extension methods for configuring Swagger generation with JWT Bearer authentication support in an
