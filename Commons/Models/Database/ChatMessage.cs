@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Commons.Models.Database
+﻿namespace Commons.Models.Database
 {
 	public class ChatMessage : Common<int>
 	{
