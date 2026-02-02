@@ -1,4 +1,5 @@
-﻿using Commons.Models;
+﻿using Commons.Models.Database;
+using Commons.Models.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -62,6 +63,23 @@ namespace Wavelength.Controllers
 			await dbContext.SaveChangesAsync();
 
 			return Ok("Chat room was created.");
+		}
+
+		[HttpGet, Authorize]
+		public async Task<ActionResult<List<GetChatRoomDto>>> GetAll()
+		{
+			List<GetChatRoomDto> chatRooms = await dbContext.ChatRooms
+				.Select(cr => new GetChatRoomDto
+				{
+					Id = cr.Id,
+					Name = cr.Name,
+					Participants = cr.Participants
+						.Select(p => p.UserId)
+						.ToList()
+				}).ToListAsync();
+			if (chatRooms == null || chatRooms.Count == 0) return NotFound("No chat rooms found.");
+
+			return Ok(chatRooms);
 		}
 
 		/// <summary>
