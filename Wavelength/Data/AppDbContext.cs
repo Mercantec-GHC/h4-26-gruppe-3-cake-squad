@@ -101,6 +101,10 @@ namespace Wavelength.Data
                 .WithMany(u => u.ProfilePictures)
                 .HasForeignKey(pp => pp.UserId);
 
+			// Create an index on the UserId column in ProfilePicture for faster lookups
+			modelBuilder.Entity<ProfilePicture>()
+                .HasIndex(pp => pp.UserId);
+
             // Configure the relationship between RefreshToken and User
             modelBuilder.Entity<RefreshToken>()
                 .HasOne(rt => rt.User)
@@ -148,6 +152,7 @@ namespace Wavelength.Data
 				.HasOne(cm => cm.ChatRoom)
 				.WithMany(cr => cr.ChatMessages)
 				.HasForeignKey(cm => cm.ChatRoomId);
+            
 		}
 
         /// <summary>
