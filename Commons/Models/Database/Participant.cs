@@ -1,4 +1,4 @@
-﻿namespace Commons.Models
+﻿namespace Commons.Models.Database
 {
 	public class Participant : Common<int>
 	{

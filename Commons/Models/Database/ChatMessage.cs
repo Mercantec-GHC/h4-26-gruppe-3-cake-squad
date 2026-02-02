@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Commons.Models
+namespace Commons.Models.Database
 {
 	public class ChatMessage : Common<int>
 	{
