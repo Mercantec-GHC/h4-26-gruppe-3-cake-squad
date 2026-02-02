@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Wavelength.Data;
-using Wavelength.Extensions.DependencyInjection;
 using Wavelength.Services;
 
 namespace Wavelength

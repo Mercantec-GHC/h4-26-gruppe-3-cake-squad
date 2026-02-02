@@ -1,12 +1,12 @@
-﻿using Commons.Dtos;
-using Commons.Models;
-using Microsoft.AspNetCore.Authorization;
+﻿using Commons.Models.Dtos;
+using Commons.Models.Database;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Wavelength.Data;
 using Wavelength.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Wavelength.Controllers
 {

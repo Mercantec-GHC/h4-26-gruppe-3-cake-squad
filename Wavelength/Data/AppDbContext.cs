@@ -1,5 +1,4 @@
-﻿using Commons.Enums;
-using Commons.Models;
+﻿using Commons.Models.Database;
 using Commons.Models.QuizModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -17,8 +16,11 @@ namespace Wavelength.Data
         public DbSet<Questionnaire> Questionnaires { get; set; }
         public DbSet<ProfilePicture> ProfilePictures { get; set; }
         public DbSet<QuizScore> QuestionScores { get; set; }
+        public DbSet<Participant> Participants { get; set; }
+        public DbSet<ChatRoom> ChatRooms { get; set; }
+        public DbSet<ChatMessage> ChatMessages { get; set; }
 
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
+		public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
 
         public override int SaveChanges()
         {
@@ -122,6 +124,30 @@ namespace Wavelength.Data
                 .HasOne(qs => qs.QuizOwner)
                 .WithOne()
                 .HasForeignKey<QuizScore>(qs => qs.QuizOwnerId);
+
+			// Configure the relationship between Participant and User
+			modelBuilder.Entity<Participant>()
+				.HasOne(p => p.User)
+				.WithMany(u => u.Participants)
+				.HasForeignKey(p => p.UserId);
+
+			// Configure the relationship between Participant and ChatRoom
+			modelBuilder.Entity<Participant>()
+				.HasOne(p => p.ChatRoom)
+				.WithMany(cr => cr.Participants)
+				.HasForeignKey(p => p.ChatRoomId);
+
+			// Configure the relationship between ChatMessage and User (Sender)
+			modelBuilder.Entity<ChatMessage>()
+				.HasOne(cm => cm.Sender)
+				.WithMany()
+				.HasForeignKey(cm => cm.SenderId);
+
+			// Configure the relationship between ChatMessage and ChatRoom
+			modelBuilder.Entity<ChatMessage>()
+				.HasOne(cm => cm.ChatRoom)
+				.WithMany(cr => cr.ChatMessages)
+				.HasForeignKey(cm => cm.ChatRoomId);
 		}
 
         /// <summary>

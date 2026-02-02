@@ -68,13 +68,37 @@ classDiagram
     }
 
     class QuestionScore {
-        + int PlayId
+        + int Id
         + DateTime CreatedAt
         + DateTime UpdatedAt
-        + string UserId
+        + string PlayerId
         + string QuizOwnerId
         + int MatchProcent
         + bool IsUserVisible
+    }
+
+    class Participant {
+        + int Id
+        + DateTime CreatedAt
+        + DateTime UpdatedAt
+        + string UserId
+        + string ChatRoomId
+    }
+
+    class ChatRoom {
+        + string Id
+        + DateTime CreatedAt
+        + DateTime UpdatedAt
+        + string Name
+    }
+
+    class ChatMessage {
+        + int Id
+        + DateTime CreatedAt
+        + DateTime UpdatedAt
+        + string ChatRoomId
+        + string SenderId
+        + string MessageContent
     }
 
 Common --|> User
@@ -84,12 +108,19 @@ Common --|> ProfilePicture
 Common --|> RefreshToken
 Common --|> UserRole
 Common --|> QuestionScore
+Common --|> Participant
+Common --|> ChatRoom
+Common --|> ChatMessage
+
+Participant --> User
+Participant --> ChatRoom
+ChatMessage --> ChatRoom
+ChatMessage --> User
 
 UserRole --> User
-Questionnaire --> User
+QuestionPicture --> Questionnaire
 QuestionPicture --> User
+Questionnaire --> User
 ProfilePicture --> User
 RefreshToken --> User
 QuestionScore --> User
-
-QuestionPicture --> Questionnaire
