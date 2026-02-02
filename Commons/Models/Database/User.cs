@@ -1,7 +1,7 @@
 ﻿using Commons.Enums;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace Commons.Models.DatabaseModels
+namespace Commons.Models.Database
 {
 	public class User : Common<string>
 	{

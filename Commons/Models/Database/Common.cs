@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Commons.Models.DatabaseModels
+namespace Commons.Models.Database
 {
 	public abstract class Common<T> 
 	{

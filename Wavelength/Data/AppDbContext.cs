@@ -1,4 +1,4 @@
-﻿using Commons.Models.DatabaseModels;
+﻿using Commons.Models.Database;
 using Commons.Models.QuizModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;

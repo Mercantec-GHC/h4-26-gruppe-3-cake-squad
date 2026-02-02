@@ -1,4 +1,4 @@
-﻿using Commons.Models.DatabaseModels;
+﻿using Commons.Models.Database;
 using Commons.Models.Dtos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;

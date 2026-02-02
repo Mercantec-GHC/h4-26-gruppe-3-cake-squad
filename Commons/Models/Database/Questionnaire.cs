@@ -1,6 +1,6 @@
 ﻿using Commons.Models.QuizModels;
 
-namespace Commons.Models.DatabaseModels
+namespace Commons.Models.Database
 {
 	public class Questionnaire : Common<int>
 	{

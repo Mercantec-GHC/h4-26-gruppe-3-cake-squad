@@ -1,6 +1,6 @@
 ﻿using Commons.Enums;
 
-namespace Commons.Models.DatabaseModels
+namespace Commons.Models.Database
 {
 	public class UserRole : Common<int>
 	{
