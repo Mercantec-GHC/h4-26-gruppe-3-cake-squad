@@ -1,9 +1,6 @@
 ﻿using Commons.Enums;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace Commons.Models
+namespace Commons.Models.Database
 {
 	public class UserRole : Common<int>
 	{

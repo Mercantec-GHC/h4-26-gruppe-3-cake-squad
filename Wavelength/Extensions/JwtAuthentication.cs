@@ -2,7 +2,7 @@
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
-namespace Wavelength.Extensions.DependencyInjection
+namespace Microsoft.Extensions.DependencyInjection
 {
     public static class JwtAuthentication
     {

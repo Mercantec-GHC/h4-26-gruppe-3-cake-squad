@@ -1,5 +1,5 @@
-﻿using Commons.Dtos;
-using Commons.Models;
+﻿using Commons.Models.Database;
+using Commons.Models.Dtos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
@@ -41,9 +41,9 @@ namespace Wavelength.Services
                 new Claim("Email", user.Email)
             };
 
-            foreach (var userRole in user.UserRoles)
+            foreach (var role in user.Roles)
             {
-                Claims.Add(new Claim(ClaimTypes.Role, userRole.Role.ToString()));
+                Claims.Add(new Claim(ClaimTypes.Role, role.ToString()));
             }
 
             var token = new JwtSecurityToken(
