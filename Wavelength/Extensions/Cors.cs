@@ -1,4 +1,4 @@
-﻿namespace Wavelength.Extensions.DependencyInjection
+﻿namespace Microsoft.Extensions.DependencyInjection
 {
 	public static class Cors
 	{
