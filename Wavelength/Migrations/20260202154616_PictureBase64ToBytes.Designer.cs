@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Wavelength.Data;
@@ -11,9 +12,11 @@ using Wavelength.Data;
 namespace Wavelength.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260202154616_PictureBase64ToBytes")]
+    partial class PictureBase64ToBytes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -54,7 +57,7 @@ namespace Wavelength.Migrations
 
                     b.HasIndex("SenderId");
 
-                    b.ToTable("ChatMessages", (string)null);
+                    b.ToTable("ChatMessages");
                 });
 
             modelBuilder.Entity("Commons.Models.Database.ChatRoom", b =>
@@ -74,7 +77,7 @@ namespace Wavelength.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ChatRooms", (string)null);
+                    b.ToTable("ChatRooms");
                 });
 
             modelBuilder.Entity("Commons.Models.Database.Participant", b =>
@@ -105,7 +108,7 @@ namespace Wavelength.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Participants", (string)null);
+                    b.ToTable("Participants");
                 });
 
             modelBuilder.Entity("Commons.Models.Database.ProfilePicture", b =>
@@ -145,7 +148,7 @@ namespace Wavelength.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("ProfilePictures", (string)null);
+                    b.ToTable("ProfilePictures");
                 });
 
             modelBuilder.Entity("Commons.Models.Database.QuestionPicture", b =>
@@ -173,7 +176,7 @@ namespace Wavelength.Migrations
 
                     b.HasIndex("QuestionnaireId");
 
-                    b.ToTable("QuestionPictures", (string)null);
+                    b.ToTable("QuestionPictures");
                 });
 
             modelBuilder.Entity("Commons.Models.Database.Questionnaire", b =>
@@ -202,7 +205,7 @@ namespace Wavelength.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("Questionnaires", (string)null);
+                    b.ToTable("Questionnaires");
                 });
 
             modelBuilder.Entity("Commons.Models.Database.QuizScore", b =>
@@ -239,7 +242,7 @@ namespace Wavelength.Migrations
 
                     b.HasIndex("QuizOwnerId");
 
-                    b.ToTable("QuestionScores", (string)null);
+                    b.ToTable("QuestionScores");
                 });
 
             modelBuilder.Entity("Commons.Models.Database.RefreshToken", b =>
@@ -267,7 +270,7 @@ namespace Wavelength.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("RefreshTokens", (string)null);
+                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("Commons.Models.Database.User", b =>
@@ -309,7 +312,7 @@ namespace Wavelength.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("Commons.Models.Database.UserRole", b =>
@@ -337,7 +340,7 @@ namespace Wavelength.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserRoles", (string)null);
+                    b.ToTable("UserRoles");
                 });
 
             modelBuilder.Entity("Commons.Models.Database.ChatMessage", b =>
