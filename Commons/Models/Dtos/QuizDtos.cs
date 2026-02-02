@@ -1,7 +1,4 @@
-﻿using Commons.Enums;
-using Commons.Models.QuizModels;
-
-namespace Commons.Dtos
+﻿namespace Commons.Models.Dtos
 {
     public class QuizSubmitDto
     {

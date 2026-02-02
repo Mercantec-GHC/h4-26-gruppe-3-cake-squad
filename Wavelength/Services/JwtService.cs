@@ -1,5 +1,5 @@
-﻿using Commons.Dtos;
-using Commons.Models.DatabaseModels;
+﻿using Commons.Models.DatabaseModels;
+using Commons.Models.Dtos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
