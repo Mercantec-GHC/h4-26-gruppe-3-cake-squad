@@ -17,6 +17,7 @@ namespace Commons.Models.Database
 		public Questionnaire Questionnaire { get; set; }
 		public List<UserRole> UserRoles { get; set; }
 		public List<ProfilePicture> ProfilePictures { get; set; }
+		public List<Participant> Participants { get; set; }
 
         // Computed property for roles
         [NotMapped]

@@ -16,8 +16,11 @@ namespace Wavelength.Data
         public DbSet<Questionnaire> Questionnaires { get; set; }
         public DbSet<ProfilePicture> ProfilePictures { get; set; }
         public DbSet<QuizScore> QuestionScores { get; set; }
+        public DbSet<Participant> Participants { get; set; }
+        public DbSet<ChatRoom> ChatRooms { get; set; }
+        public DbSet<ChatMessage> ChatMessages { get; set; }
 
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
+		public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
 
         public override int SaveChanges()
         {
@@ -98,6 +101,10 @@ namespace Wavelength.Data
                 .WithMany(u => u.ProfilePictures)
                 .HasForeignKey(pp => pp.UserId);
 
+			// Create an index on the UserId column in ProfilePicture for faster lookups
+			modelBuilder.Entity<ProfilePicture>()
+                .HasIndex(pp => pp.UserId);
+
             // Configure the relationship between RefreshToken and User
             modelBuilder.Entity<RefreshToken>()
                 .HasOne(rt => rt.User)
@@ -110,17 +117,42 @@ namespace Wavelength.Data
                 .WithMany(q => q.Pictures)
                 .HasForeignKey(qp => qp.QuestionnaireId);
 
-            // Configure the one-to-one relationship between QuizScore and User (Player)
-            modelBuilder.Entity<QuizScore>()
+			// Configure the one-to-many relationship between QuizScore and User (Player)
+			modelBuilder.Entity<QuizScore>()
                 .HasOne(qs => qs.Player)
-                .WithOne()
-                .HasForeignKey<QuizScore>(qs => qs.PlayerId);
+                .WithMany()
+                .HasForeignKey(qs => qs.PlayerId);
 
-            // Configure the one-to-one relationship between QuizScore and User (QuizOwner)
-            modelBuilder.Entity<QuizScore>()
+			// Configure the one-to-many relationship between QuizScore and User (QuizOwner)
+			modelBuilder.Entity<QuizScore>()
                 .HasOne(qs => qs.QuizOwner)
-                .WithOne()
-                .HasForeignKey<QuizScore>(qs => qs.QuizOwnerId);
+                .WithMany()
+                .HasForeignKey(qs => qs.QuizOwnerId);
+
+			// Configure the relationship between Participant and User
+			modelBuilder.Entity<Participant>()
+				.HasOne(p => p.User)
+				.WithMany(u => u.Participants)
+				.HasForeignKey(p => p.UserId);
+
+			// Configure the relationship between Participant and ChatRoom
+			modelBuilder.Entity<Participant>()
+				.HasOne(p => p.ChatRoom)
+				.WithMany(cr => cr.Participants)
+				.HasForeignKey(p => p.ChatRoomId);
+
+			// Configure the relationship between ChatMessage and User (Sender)
+			modelBuilder.Entity<ChatMessage>()
+				.HasOne(cm => cm.Sender)
+				.WithMany()
+				.HasForeignKey(cm => cm.SenderId);
+
+			// Configure the relationship between ChatMessage and ChatRoom
+			modelBuilder.Entity<ChatMessage>()
+				.HasOne(cm => cm.ChatRoom)
+				.WithMany(cr => cr.ChatMessages)
+				.HasForeignKey(cm => cm.ChatRoomId);
+            
 		}
 
         /// <summary>

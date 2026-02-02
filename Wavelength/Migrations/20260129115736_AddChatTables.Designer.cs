@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Wavelength.Data;
@@ -11,9 +12,11 @@ using Wavelength.Data;
 namespace Wavelength.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260129115736_AddChatTables")]
+    partial class AddChatTables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -22,7 +25,7 @@ namespace Wavelength.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Commons.Models.Database.ChatMessage", b =>
+            modelBuilder.Entity("Commons.Models.ChatMessage", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -57,7 +60,7 @@ namespace Wavelength.Migrations
                     b.ToTable("ChatMessages");
                 });
 
-            modelBuilder.Entity("Commons.Models.Database.ChatRoom", b =>
+            modelBuilder.Entity("Commons.Models.ChatRoom", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("text");
@@ -77,7 +80,7 @@ namespace Wavelength.Migrations
                     b.ToTable("ChatRooms");
                 });
 
-            modelBuilder.Entity("Commons.Models.Database.Participant", b =>
+            modelBuilder.Entity("Commons.Models.Participant", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -108,7 +111,7 @@ namespace Wavelength.Migrations
                     b.ToTable("Participants");
                 });
 
-            modelBuilder.Entity("Commons.Models.Database.ProfilePicture", b =>
+            modelBuilder.Entity("Commons.Models.ProfilePicture", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -118,10 +121,6 @@ namespace Wavelength.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("PPictureAlt")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<string>("PPictureBase64")
                         .IsRequired()
@@ -144,7 +143,7 @@ namespace Wavelength.Migrations
                     b.ToTable("ProfilePictures");
                 });
 
-            modelBuilder.Entity("Commons.Models.Database.QuestionPicture", b =>
+            modelBuilder.Entity("Commons.Models.QuestionPicture", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -172,7 +171,7 @@ namespace Wavelength.Migrations
                     b.ToTable("QuestionPictures");
                 });
 
-            modelBuilder.Entity("Commons.Models.Database.Questionnaire", b =>
+            modelBuilder.Entity("Commons.Models.Questionnaire", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -201,7 +200,7 @@ namespace Wavelength.Migrations
                     b.ToTable("Questionnaires");
                 });
 
-            modelBuilder.Entity("Commons.Models.Database.QuizScore", b =>
+            modelBuilder.Entity("Commons.Models.QuizScore", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -231,14 +230,16 @@ namespace Wavelength.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PlayerId");
+                    b.HasIndex("PlayerId")
+                        .IsUnique();
 
-                    b.HasIndex("QuizOwnerId");
+                    b.HasIndex("QuizOwnerId")
+                        .IsUnique();
 
                     b.ToTable("QuestionScores");
                 });
 
-            modelBuilder.Entity("Commons.Models.Database.RefreshToken", b =>
+            modelBuilder.Entity("Commons.Models.RefreshToken", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("text");
@@ -266,7 +267,7 @@ namespace Wavelength.Migrations
                     b.ToTable("RefreshTokens");
                 });
 
-            modelBuilder.Entity("Commons.Models.Database.User", b =>
+            modelBuilder.Entity("Commons.Models.User", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("text");
@@ -308,7 +309,7 @@ namespace Wavelength.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Commons.Models.Database.UserRole", b =>
+            modelBuilder.Entity("Commons.Models.UserRole", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -336,15 +337,15 @@ namespace Wavelength.Migrations
                     b.ToTable("UserRoles");
                 });
 
-            modelBuilder.Entity("Commons.Models.Database.ChatMessage", b =>
+            modelBuilder.Entity("Commons.Models.ChatMessage", b =>
                 {
-                    b.HasOne("Commons.Models.Database.ChatRoom", "ChatRoom")
+                    b.HasOne("Commons.Models.ChatRoom", "ChatRoom")
                         .WithMany("ChatMessages")
                         .HasForeignKey("ChatRoomId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Commons.Models.Database.User", "Sender")
+                    b.HasOne("Commons.Models.User", "Sender")
                         .WithMany()
                         .HasForeignKey("SenderId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -355,15 +356,15 @@ namespace Wavelength.Migrations
                     b.Navigation("Sender");
                 });
 
-            modelBuilder.Entity("Commons.Models.Database.Participant", b =>
+            modelBuilder.Entity("Commons.Models.Participant", b =>
                 {
-                    b.HasOne("Commons.Models.Database.ChatRoom", "ChatRoom")
+                    b.HasOne("Commons.Models.ChatRoom", "ChatRoom")
                         .WithMany("Participants")
                         .HasForeignKey("ChatRoomId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Commons.Models.Database.User", "User")
+                    b.HasOne("Commons.Models.User", "User")
                         .WithMany("Participants")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -374,9 +375,9 @@ namespace Wavelength.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Commons.Models.Database.ProfilePicture", b =>
+            modelBuilder.Entity("Commons.Models.ProfilePicture", b =>
                 {
-                    b.HasOne("Commons.Models.Database.User", "User")
+                    b.HasOne("Commons.Models.User", "User")
                         .WithMany("ProfilePictures")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -385,9 +386,9 @@ namespace Wavelength.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Commons.Models.Database.QuestionPicture", b =>
+            modelBuilder.Entity("Commons.Models.QuestionPicture", b =>
                 {
-                    b.HasOne("Commons.Models.Database.Questionnaire", "Questionnaire")
+                    b.HasOne("Commons.Models.Questionnaire", "Questionnaire")
                         .WithMany("Pictures")
                         .HasForeignKey("QuestionnaireId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -396,28 +397,28 @@ namespace Wavelength.Migrations
                     b.Navigation("Questionnaire");
                 });
 
-            modelBuilder.Entity("Commons.Models.Database.Questionnaire", b =>
+            modelBuilder.Entity("Commons.Models.Questionnaire", b =>
                 {
-                    b.HasOne("Commons.Models.Database.User", "User")
+                    b.HasOne("Commons.Models.User", "User")
                         .WithOne("Questionnaire")
-                        .HasForeignKey("Commons.Models.Database.Questionnaire", "UserId")
+                        .HasForeignKey("Commons.Models.Questionnaire", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Commons.Models.Database.QuizScore", b =>
+            modelBuilder.Entity("Commons.Models.QuizScore", b =>
                 {
-                    b.HasOne("Commons.Models.Database.User", "Player")
-                        .WithMany()
-                        .HasForeignKey("PlayerId")
+                    b.HasOne("Commons.Models.User", "Player")
+                        .WithOne()
+                        .HasForeignKey("Commons.Models.QuizScore", "PlayerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Commons.Models.Database.User", "QuizOwner")
-                        .WithMany()
-                        .HasForeignKey("QuizOwnerId")
+                    b.HasOne("Commons.Models.User", "QuizOwner")
+                        .WithOne()
+                        .HasForeignKey("Commons.Models.QuizScore", "QuizOwnerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -426,9 +427,9 @@ namespace Wavelength.Migrations
                     b.Navigation("QuizOwner");
                 });
 
-            modelBuilder.Entity("Commons.Models.Database.RefreshToken", b =>
+            modelBuilder.Entity("Commons.Models.RefreshToken", b =>
                 {
-                    b.HasOne("Commons.Models.Database.User", "User")
+                    b.HasOne("Commons.Models.User", "User")
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -437,9 +438,9 @@ namespace Wavelength.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Commons.Models.Database.UserRole", b =>
+            modelBuilder.Entity("Commons.Models.UserRole", b =>
                 {
-                    b.HasOne("Commons.Models.Database.User", "User")
+                    b.HasOne("Commons.Models.User", "User")
                         .WithMany("UserRoles")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -448,19 +449,19 @@ namespace Wavelength.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Commons.Models.Database.ChatRoom", b =>
+            modelBuilder.Entity("Commons.Models.ChatRoom", b =>
                 {
                     b.Navigation("ChatMessages");
 
                     b.Navigation("Participants");
                 });
 
-            modelBuilder.Entity("Commons.Models.Database.Questionnaire", b =>
+            modelBuilder.Entity("Commons.Models.Questionnaire", b =>
                 {
                     b.Navigation("Pictures");
                 });
 
-            modelBuilder.Entity("Commons.Models.Database.User", b =>
+            modelBuilder.Entity("Commons.Models.User", b =>
                 {
                     b.Navigation("Participants");
 
