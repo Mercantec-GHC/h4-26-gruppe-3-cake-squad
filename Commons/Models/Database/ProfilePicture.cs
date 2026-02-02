@@ -1,6 +1,6 @@
 ﻿using Commons.Enums;
 
-namespace Commons.Models
+namespace Commons.Models.Database
 {
     public class ProfilePicture : Common<int>
     {

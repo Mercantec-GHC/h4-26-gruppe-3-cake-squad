@@ -1,10 +1,12 @@
-﻿using Commons.Dtos;
-using Commons.Models;
+﻿using Commons.Models.Dtos;
+using Commons.Models.Database;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Wavelength.Data;
 using Wavelength.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Wavelength.Controllers
 {
@@ -37,7 +39,7 @@ namespace Wavelength.Controllers
             //Input validation
             if (string.IsNullOrWhiteSpace(dto.FirstName)) return BadRequest("First name is required.");
             if (string.IsNullOrWhiteSpace(dto.LastName)) return BadRequest("Last name is required.");
-            if (!Regex.Matches(dto.Email, "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$").Any()) return BadRequest ("Invalid email format.");
+            if (!Regex.Matches(dto.Email, "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$").Any()) return BadRequest("Invalid email format.");
             if (dto.Password.Length < 8) return BadRequest("Password must be at least 8 characters long.");
             if (!IsPasswordSecure(dto.Password)) return BadRequest("Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character.");
             if (dto.Birthday >= DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-18))) return BadRequest("You must be at least 18 years old to register.");
@@ -49,10 +51,10 @@ namespace Wavelength.Controllers
                 LastName = dto.LastName,
                 Email = dto.Email.ToLower(),
                 Birthday = dto.Birthday,
-                HashedPassword = BCrypt.Net.BCrypt.HashPassword(dto.Password), 
+                HashedPassword = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                 Description = string.Empty
             };
-   
+
             await dbContext.Users.AddAsync(user);
             await dbContext.SaveChangesAsync();
 
@@ -101,6 +103,80 @@ namespace Wavelength.Controllers
         }
 
         /// <summary>
+        /// Updates the authenticated user's password after validating the current password and new password requirements.
+        /// </summary>
+        /// <remarks>The new password must be at least 8 characters long and meet complexity requirements including
+        /// uppercase, lowercase, digit, and special character. The user must be authenticated to access this endpoint.</remarks>
+        /// <param name="dto">An object containing the current password and the new password. Cannot be null.</param>
+        /// <returns>An HTTP 200 OK result if the password is successfully updated; otherwise, a Bad Request or Unauthorized
+        /// result with an error message describing the validation or authentication failure.</returns>
+        [Authorize]
+        [HttpPut("updatePassword")]
+        public async Task<ActionResult> UpdatePasswordAsync(UpdatePasswordDto dto)
+        {
+            var user = await GetSignedInUserAsync();
+            if (user == null) return Unauthorized("User not authenticated.");
+
+            // Validate current password
+            if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.HashedPassword))
+                return BadRequest("Current password is incorrect.");
+
+            // Validate new password
+            if (dto.NewPassword.Length < 8) return BadRequest("Password must be at least 8 characters long.");
+            if (!IsPasswordSecure(dto.NewPassword)) return BadRequest("Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character.");
+            
+            // Validate password confirmation
+            if (dto.NewPassword != dto.ConfirmNewPassword)
+                return BadRequest("New password and confirmation password do not match.");
+
+            // Update password
+            user.HashedPassword = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+
+            dbContext.Users.Update(user);
+            await dbContext.SaveChangesAsync();
+
+            return Ok("Password updated successfully.");
+        }
+
+        /// <summary>
+        /// Updates the signed-in user's profile description with the specified value.
+        /// </summary>
+        /// <remarks>This action requires the user to be authenticated. If the provided description is
+        /// null or empty after trimming, the user's description will be cleared. Descriptions longer than 500
+        /// characters are not allowed.</remarks>
+        /// <param name="dto">An object containing the new description to set for the user's profile. The description must not exceed 500
+        /// characters.</param>
+        /// <returns>An <see cref="ActionResult"/> indicating the result of the operation. Returns <see cref="OkResult"/> if the
+        /// description was updated successfully; otherwise, returns an appropriate error result such as <see
+        /// cref="UnauthorizedResult"/> or <see cref="BadRequestObjectResult"/>.</returns>
+        [HttpPut("updateDescription"), Authorize]
+        public async Task<ActionResult> UpdateDescriptionAsync(UpdateDescriptionDto dto)
+        {
+            var user = await GetSignedInUserAsync();
+            if (user == null) return Unauthorized("User not authenticated.");
+
+            if (dto.Description != null)
+            {
+                dto.Description = dto.Description.Trim();
+
+                // Validate description
+                if (dto.Description.Length > 500)
+                    return BadRequest("Description cannot exceed 500 characters.");
+                if (string.IsNullOrEmpty(dto.Description)) dto.Description = null;
+            }
+
+            // Update description
+            user.Description = dto.Description ?? string.Empty;
+            user.UpdatedAt = DateTime.UtcNow;
+
+            dbContext.Users.Update(user);
+            await dbContext.SaveChangesAsync();
+
+            return Ok("Description updated successfully.");
+        }
+
+        /// <summary>
 		/// Checks if the password is secure, using <see cref="Regex"/>.
 		/// </summary>
 		/// <param name="password"></param>
@@ -119,6 +195,18 @@ namespace Wavelength.Controllers
             // $               - Ensures the match ends at the end of the string.
             var regex = new Regex(@"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[\W_])[^\s]{8,}$");
             return regex.IsMatch(password);
+        }
+
+        protected async Task<User?> GetSignedInUserAsync()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null) return null;
+            var user = await dbContext.Users.Where(u => u.Id == userId)
+             .Include(u => u.UserRoles)
+             .FirstOrDefaultAsync();
+            if (user == null) return null;
+
+            return user;
         }
     }
 }

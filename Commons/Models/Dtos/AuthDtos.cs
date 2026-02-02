@@ -1,4 +1,4 @@
-﻿namespace Commons.Dtos
+﻿namespace Commons.Models.Dtos
 {
     public class RegisterDto
     {
@@ -7,7 +7,6 @@
         public string Email { get; set; }
         public string Password { get; set; }
         public DateOnly Birthday { get; set; }
-
     }
 
     public class LoginDto
@@ -26,5 +25,17 @@
     public class RefreshTokenDto
     {
         public string Token { get; set; }
+    }
+
+    public class UpdatePasswordDto
+    {
+        public string CurrentPassword { get; set; }
+        public string NewPassword { get; set; }
+        public string ConfirmNewPassword { get; set; }
+    }
+
+    public class UpdateDescriptionDto
+    {
+        public string? Description { get; set; }
     }
 }
