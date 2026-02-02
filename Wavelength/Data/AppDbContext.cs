@@ -113,17 +113,17 @@ namespace Wavelength.Data
                 .WithMany(q => q.Pictures)
                 .HasForeignKey(qp => qp.QuestionnaireId);
 
-            // Configure the one-to-one relationship between QuizScore and User (Player)
-            modelBuilder.Entity<QuizScore>()
+			// Configure the one-to-many relationship between QuizScore and User (Player)
+			modelBuilder.Entity<QuizScore>()
                 .HasOne(qs => qs.Player)
-                .WithOne()
-                .HasForeignKey<QuizScore>(qs => qs.PlayerId);
+                .WithMany()
+                .HasForeignKey(qs => qs.PlayerId);
 
-            // Configure the one-to-one relationship between QuizScore and User (QuizOwner)
-            modelBuilder.Entity<QuizScore>()
+			// Configure the one-to-many relationship between QuizScore and User (QuizOwner)
+			modelBuilder.Entity<QuizScore>()
                 .HasOne(qs => qs.QuizOwner)
-                .WithOne()
-                .HasForeignKey<QuizScore>(qs => qs.QuizOwnerId);
+                .WithMany()
+                .HasForeignKey(qs => qs.QuizOwnerId);
 
 			// Configure the relationship between Participant and User
 			modelBuilder.Entity<Participant>()
