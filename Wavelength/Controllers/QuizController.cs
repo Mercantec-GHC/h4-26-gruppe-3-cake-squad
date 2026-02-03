@@ -45,7 +45,7 @@ namespace Wavelength.Controllers
         public async Task<ActionResult<Quiz>> GetMyQuiz()
         {
             var user = await GetSignedInUserAsync();
-            if (user == null) return Unauthorized();
+            if (user == null) return StatusCode(500);
 
             var questionnaire = user.Questionnaire;
             if (questionnaire == null || questionnaire.Quiz == null) return NotFound("Your quiz has not been set up yet.");
