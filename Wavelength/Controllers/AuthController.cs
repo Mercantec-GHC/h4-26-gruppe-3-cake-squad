@@ -12,14 +12,12 @@ namespace Wavelength.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class AuthController : ControllerBase
+    public class AuthController : BaseController
     {
-        private readonly AppDbContext dbContext;
         private readonly JwtService jwtService;
 
-        public AuthController(AppDbContext dbContext, JwtService jwtService)
+        public AuthController(AppDbContext dbContext, JwtService jwtService) : base(dbContext)
         {
-            this.dbContext = dbContext;
             this.jwtService = jwtService;
         }
 
@@ -43,7 +41,7 @@ namespace Wavelength.Controllers
             if (dto.Password.Length < 8) return BadRequest("Password must be at least 8 characters long.");
             if (!IsPasswordSecure(dto.Password)) return BadRequest("Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character.");
             if (dto.Birthday >= DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-18))) return BadRequest("You must be at least 18 years old to register.");
-            if (dbContext.Users.Any(u => u.Email == dto.Email)) return BadRequest("Email already in use.");
+            if (DbContext.Users.Any(u => u.Email == dto.Email)) return BadRequest("Email already in use.");
 
             var user = new User
             {
@@ -55,8 +53,8 @@ namespace Wavelength.Controllers
                 Description = string.Empty
             };
 
-            await dbContext.Users.AddAsync(user);
-            await dbContext.SaveChangesAsync();
+            await DbContext.Users.AddAsync(user);
+            await DbContext.SaveChangesAsync();
 
             return Ok(user);
         }
@@ -72,7 +70,7 @@ namespace Wavelength.Controllers
         public async Task<ActionResult<AuthResponseDto>> LoginAsync(LoginDto dto)
         {
             //Find user with email and include UserRoles for JWT claims
-            var user = await dbContext.Users
+            var user = await DbContext.Users
                 .Include(u => u.UserRoles)
                 .FirstOrDefaultAsync(u => u.Email == dto.Email.ToLower());
 
@@ -133,8 +131,8 @@ namespace Wavelength.Controllers
             user.HashedPassword = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
             user.UpdatedAt = DateTime.UtcNow;
 
-            dbContext.Users.Update(user);
-            await dbContext.SaveChangesAsync();
+            DbContext.Users.Update(user);
+            await DbContext.SaveChangesAsync();
 
             return Ok("Password updated successfully.");
         }
@@ -170,8 +168,8 @@ namespace Wavelength.Controllers
             user.Description = dto.Description ?? string.Empty;
             user.UpdatedAt = DateTime.UtcNow;
 
-            dbContext.Users.Update(user);
-            await dbContext.SaveChangesAsync();
+            DbContext.Users.Update(user);
+            await DbContext.SaveChangesAsync();
 
             return Ok("Description updated successfully.");
         }
@@ -223,18 +221,6 @@ namespace Wavelength.Controllers
             };
 
             return Ok(meDto);
-        }
-
-        protected async Task<User?> GetSignedInUserAsync()
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null) return null;
-            var user = await dbContext.Users.Where(u => u.Id == userId)
-             .Include(u => u.UserRoles)
-             .FirstOrDefaultAsync();
-            if (user == null) return null;
-
-            return user;
         }
     }
 }

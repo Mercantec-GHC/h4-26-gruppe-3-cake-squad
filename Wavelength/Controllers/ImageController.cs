@@ -26,18 +26,13 @@ namespace Wavelength.Controllers
     /// on ownership where applicable.</remarks>
     [ApiController]
     [Route("[controller]")]
-    public class ImagesController : ControllerBase
+    public class ImagesController : BaseController
     {
-        private readonly AppDbContext dbContext;
-
         /// <summary>
-        /// Initializes a new instance of the ProfileImageController class using the specified database context.
+        /// Initializes a new instance of the ImagesController class using the specified database context.
         /// </summary>
-        /// <param name="dbContext">The database context to be used for accessing and managing profile image data. Cannot be null.</param>
-        public ImagesController(AppDbContext dbContext)
-        {
-            this.dbContext = dbContext;
-        }
+        /// <param name="dbContext">The database context to be used by the controller for data access operations. Cannot be null.</param>
+        public ImagesController(AppDbContext dbContext) : base(dbContext) {}
 
         /// <summary>
         /// Uploads a new interest image for the currently authenticated user.
@@ -99,8 +94,8 @@ namespace Wavelength.Controllers
                 Type = extension,
                 Data = bytes
             };
-            await dbContext.ProfilePictures.AddAsync(entity);
-            await dbContext.SaveChangesAsync();
+            await DbContext.ProfilePictures.AddAsync(entity);
+            await DbContext.SaveChangesAsync();
 
             return Ok(new { entity.Id });
         }
@@ -178,7 +173,7 @@ namespace Wavelength.Controllers
             var finalBytes = outStream.ToArray();
 
             // Check if user already has an avatar
-            var entity = await dbContext.ProfilePictures
+            var entity = await DbContext.ProfilePictures
                 .FirstOrDefaultAsync(x => x.UserId == user.Id && x.PictureType == PictureTypeEnum.Avatar);
 
             // If not, create new
@@ -191,10 +186,10 @@ namespace Wavelength.Controllers
                     Name = "avatar",
                     Type = "png"
                 };
-                await dbContext.ProfilePictures.AddAsync(entity);
+                await DbContext.ProfilePictures.AddAsync(entity);
             }
             entity.Data = finalBytes;
-            await dbContext.SaveChangesAsync();
+            await DbContext.SaveChangesAsync();
 
             return NoContent();
         }
@@ -236,11 +231,11 @@ namespace Wavelength.Controllers
             else
             {
                 // Check user visibility
-                isVisible = await dbContext.QuestionScores.AnyAsync(qs => qs.PlayerId == user!.Id && qs.QuizOwnerId == userId && qs.IsUserVisible);
+                isVisible = await DbContext.QuestionScores.AnyAsync(qs => qs.PlayerId == user!.Id && qs.QuizOwnerId == userId && qs.IsUserVisible);
             }
 
             // Find the user's avatar
-            var pic = await dbContext.ProfilePictures
+            var pic = await DbContext.ProfilePictures
                     .Where(x => x.UserId == userId && x.PictureType == PictureTypeEnum.Avatar)
                     .FirstOrDefaultAsync();
             if (pic == null) return NotFound();
@@ -280,14 +275,14 @@ namespace Wavelength.Controllers
             if (user == null) return StatusCode(500);
 
             // Find avatar
-            var pic = await dbContext.ProfilePictures
+            var pic = await DbContext.ProfilePictures
                 .Where(x => x.UserId == user.Id && x.PictureType == PictureTypeEnum.Avatar)
                 .FirstOrDefaultAsync();
 
             if (pic == null) return NotFound();
 
-            dbContext.ProfilePictures.Remove(pic);
-            await dbContext.SaveChangesAsync();
+            DbContext.ProfilePictures.Remove(pic);
+            await DbContext.SaveChangesAsync();
 
             return NoContent();
         }
@@ -305,7 +300,7 @@ namespace Wavelength.Controllers
         public async Task<ActionResult> Get(int id, bool? miniature = null)
         {
             // Retrieve profile picture from database
-            var pic = await dbContext.ProfilePictures.FindAsync(id);
+            var pic = await DbContext.ProfilePictures.FindAsync(id);
             if (pic == null) return NotFound();
 
             // Load image
@@ -352,7 +347,7 @@ namespace Wavelength.Controllers
         public async Task<ActionResult> GetInfo(int id)
         {
             // Retrieve profile picture information from database
-            var pic = await dbContext.ProfilePictures
+            var pic = await DbContext.ProfilePictures
                 .Where(x => x.Id == id)
                 .Select(x => new ImageInfoDto
                 {
@@ -385,12 +380,12 @@ namespace Wavelength.Controllers
             if (user == null) return StatusCode(500);
 
             // Find profile picture
-            var pic = await dbContext.ProfilePictures.FindAsync(id);
+            var pic = await DbContext.ProfilePictures.FindAsync(id);
             if (pic == null || pic.PictureType == PictureTypeEnum.Interest) return NotFound();
             if (pic.UserId != user.Id) return Unauthorized();
 
-            dbContext.ProfilePictures.Remove(pic);
-            await dbContext.SaveChangesAsync();
+            DbContext.ProfilePictures.Remove(pic);
+            await DbContext.SaveChangesAsync();
 
             return NoContent();
         }
@@ -411,14 +406,14 @@ namespace Wavelength.Controllers
             if (user == null) return StatusCode(500);
 
             // Find profile picture
-            var pic = await dbContext.ProfilePictures.FindAsync(dto);
+            var pic = await DbContext.ProfilePictures.FindAsync(dto);
             if (pic == null || pic.PictureType == PictureTypeEnum.Interest) return NotFound();
             if (pic.UserId != user.Id) return Unauthorized();
 
             // Update name
             pic.Name = dto.NewName;
 
-            await dbContext.SaveChangesAsync();
+            await DbContext.SaveChangesAsync();
 
             return NoContent();
         }
@@ -445,7 +440,7 @@ namespace Wavelength.Controllers
             if (string.IsNullOrEmpty(userId)) userId = user.Id;
 
             // Retrieve images and map to DTOs
-            var images = await dbContext.ProfilePictures
+            var images = await DbContext.ProfilePictures
                 .Where(x => x.UserId == userId && x.PictureType == PictureTypeEnum.Interest)
                 .OrderByDescending(x => x.CreatedAt)
                 .Select(x => new ImageInfoFullDto
@@ -458,19 +453,6 @@ namespace Wavelength.Controllers
                 .ToListAsync();
 
             return Ok(images);
-        }
-
-        // To be moved to a common base controller later
-        protected async Task<User?> GetSignedInUserAsync()
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null) return null;
-            var user = await dbContext.Users.Where(u => u.Id == userId)
-             .Include(u => u.UserRoles)
-             .FirstOrDefaultAsync();
-            if (user == null) return null;
-
-            return user;
         }
     }
 }
