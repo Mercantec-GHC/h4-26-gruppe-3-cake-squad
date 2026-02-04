@@ -10,9 +10,6 @@ namespace Commons.Models.Database
         public string Type { get; set; }
         public byte[] Data { get; set; }
 
-        //public string PPictureBase64 { get; set; }
-        //public string PPictureAlt { get; set; }
-
         // Relations
         public User User { get; set; }
     }

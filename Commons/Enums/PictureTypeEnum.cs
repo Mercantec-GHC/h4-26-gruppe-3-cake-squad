@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Commons.Enums
+﻿namespace Commons.Enums
 {
 	public enum PictureTypeEnum
 	{
-		ProfilePicture = 1,
-		InterestPicture = 2,
+		Avatar = 0,
+        Interest = 1,
+        Profile = 2,
 	}
 }
