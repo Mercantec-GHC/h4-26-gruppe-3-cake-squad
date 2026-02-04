@@ -1,9 +1,10 @@
 services:
   wavelength:
-    image: ${DOCKER_REGISTRY-}wavelength
+    image: ${DOCKER_REGISTRY-}wavelengthapi
     build:
       context: .
       dockerfile: Wavelength/Dockerfile
+    container_name: wavelength-api
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
       - ASPNETCORE_URLS=http://+:80
