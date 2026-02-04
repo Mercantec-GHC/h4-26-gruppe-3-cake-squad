@@ -105,6 +105,10 @@ namespace Wavelength.Data
 			modelBuilder.Entity<ProfilePicture>()
                 .HasIndex(pp => pp.UserId);
 
+			// Create a composite index on (UserId, PictureType) for optimized queries
+			modelBuilder.Entity<ProfilePicture>()
+                .HasIndex(pp => new { pp.UserId, pp.PictureType });
+
             // Configure the relationship between RefreshToken and User
             modelBuilder.Entity<RefreshToken>()
                 .HasOne(rt => rt.User)

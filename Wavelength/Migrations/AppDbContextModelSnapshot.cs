@@ -145,6 +145,8 @@ namespace Wavelength.Migrations
 
                     b.HasIndex("UserId");
 
+                    b.HasIndex("UserId", "PictureType");
+
                     b.ToTable("ProfilePictures", (string)null);
                 });
 
