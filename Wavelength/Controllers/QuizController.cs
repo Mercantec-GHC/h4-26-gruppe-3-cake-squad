@@ -4,7 +4,6 @@ using Commons.Models.QuizModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 using Wavelength.Data;
 
 namespace Wavelength.Controllers
@@ -20,19 +19,15 @@ namespace Wavelength.Controllers
     /// independently.</remarks>
     [ApiController]
     [Route("[controller]")]
-    public class QuizController : ControllerBase
+    public class QuizController : BaseController
     {
-        private readonly AppDbContext dbContext;
-
         /// <summary>
         /// Initializes a new instance of the QuizController class using the specified database context.
         /// </summary>
-        /// <remarks>The provided AppDbContext instance is used for all data operations performed by the
-        /// controller. Ensure that the context's lifetime is managed appropriately to avoid resource leaks.</remarks>
-        /// <param name="dbContext">The database context to be used for accessing quiz data. Cannot be null.</param>
-        public QuizController(AppDbContext dbContext)
+        /// <param name="dbContext">The database context to be used for data access operations. Cannot be null.</param>
+        public QuizController(AppDbContext dbContext) : base(dbContext)
         {
-            this.dbContext = dbContext;
+            this.SetDefaultUserQuery(q => q.Include(u => u.Questionnaire));
         }
 
         /// <summary>
@@ -45,7 +40,7 @@ namespace Wavelength.Controllers
         public async Task<ActionResult<Quiz>> GetMyQuiz()
         {
             var user = await GetSignedInUserAsync();
-            if (user == null) return Unauthorized();
+            if (user == null) return StatusCode(500);
 
             var questionnaire = user.Questionnaire;
             if (questionnaire == null || questionnaire.Quiz == null) return NotFound("Your quiz has not been set up yet.");
@@ -105,10 +100,10 @@ namespace Wavelength.Controllers
                 {
                     UserId = user.Id,
                 };
-                await dbContext.Questionnaires.AddAsync(questionnaire);
+                await DbContext.Questionnaires.AddAsync(questionnaire);
             }
             questionnaire.Quiz = quiz;
-            await dbContext.SaveChangesAsync();
+            await DbContext.SaveChangesAsync();
 
             return NoContent();
         }
@@ -123,7 +118,7 @@ namespace Wavelength.Controllers
         [HttpGet("UserQuiz/{userId}")]
         public async Task<ActionResult<List<QuestionBase>>> GetUserQuiz(string userId)
         {
-            var user = await dbContext.Users
+            var user = await DbContext.Users
                 .Where(u => u.Id == userId)
                 .Include(u => u.Questionnaire)
                 .FirstOrDefaultAsync();
@@ -161,14 +156,14 @@ namespace Wavelength.Controllers
             if (user.Id == dto.UserId)
                 return BadRequest("You cannot submit your own quiz.");
 
-            var targetUser = await dbContext.Users
+            var targetUser = await DbContext.Users
                 .Where(u => u.Id == dto.UserId)
                 .Include(u => u.Questionnaire)
                 .FirstOrDefaultAsync();
             if (targetUser == null) return NotFound("User not found.");
             if (targetUser.Questionnaire == null || targetUser.Questionnaire.Quiz == null) return NotFound("The user's quiz has not been set up yet.");
 
-            if (await dbContext.QuestionScores.AnyAsync(qs => qs.PlayerId == user.Id && qs.QuizOwnerId == targetUser.Id))
+            if (await DbContext.QuestionScores.AnyAsync(qs => qs.PlayerId == user.Id && qs.QuizOwnerId == targetUser.Id))
                 return BadRequest("You have already submitted this quiz.");
 
             // Validate answer count
@@ -200,8 +195,8 @@ namespace Wavelength.Controllers
                 MatchPercent = matchPercent,
                 IsUserVisible = passed
             };
-            await dbContext.QuestionScores.AddAsync(quizScore);
-            await dbContext.SaveChangesAsync();
+            await DbContext.QuestionScores.AddAsync(quizScore);
+            await DbContext.SaveChangesAsync();
 
             return Ok(new QuizResultDto
             {
@@ -227,27 +222,13 @@ namespace Wavelength.Controllers
             if (user.Id == userId)
                 return BadRequest("You cannot get a match percentage for your own quiz.");
 
-            var quizScore = await dbContext.QuestionScores
+            var quizScore = await DbContext.QuestionScores
                 .Where(qs => qs.PlayerId == user.Id && qs.QuizOwnerId == userId)
                 .FirstOrDefaultAsync();
 
             if (quizScore == null) return NotFound("No quiz score found for the specified users.");
             
             return Ok(quizScore.MatchPercent);
-        }
-
-        // To be moved to a common base controller later
-        protected async Task<User?> GetSignedInUserAsync()
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (userId == null) return null;
-            var user = await dbContext.Users.Where(u => u.Id == userId)
-             .Include(u => u.UserRoles)
-             .Include(u => u.Questionnaire)
-             .FirstOrDefaultAsync();
-            if (user == null) return null;
-
-            return user;
         }
     }
 }
