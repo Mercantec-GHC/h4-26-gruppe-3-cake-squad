@@ -288,6 +288,151 @@ namespace Wavelength.Controllers
         }
 
         /// <summary>
+        /// Uploads and sets the authenticated user's profile picture. The uploaded image is validated, resized, and
+        /// stored as a PNG.
+        /// </summary>
+        /// <remarks>Only authenticated users can upload a profile picture. The uploaded image is validated for
+        /// file type and content to ensure it is a valid JPEG or PNG image. Existing profile pictures are replaced when a new
+        /// image is uploaded.</remarks>
+        /// <param name="file">The image file to upload as the user's profile picture. Must be a non-empty JPEG or PNG file not exceeding 10 MB in
+        /// size.</param>
+        /// <returns>A 204 No Content response if the profile picture is uploaded successfully; otherwise, a 400 Bad Request response if
+        /// the file is invalid or a 500 Internal Server Error if the user cannot be determined.</returns>
+        [HttpPost("Profile/Upload"), Authorize]
+        public async Task<ActionResult> UploadProfile(IFormFile file)
+        {
+            // File presence check
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded");
+
+            // File size check
+            const long maxSize = 10 * 1024 * 1024;
+            if (file.Length > maxSize)
+                return BadRequest("File size exceeds 10 MB limit");
+
+            // Validate user
+            var user = await GetSignedInUserAsync();
+            if (user == null) return StatusCode(500);
+
+            // Read file into byte array
+            using var ms = new MemoryStream();
+            await file.CopyToAsync(ms);
+            var bytes = ms.ToArray();
+
+            // MIME-type check
+            var allowedTypes = new[] { "image/jpeg", "image/png" };
+            if (!allowedTypes.Contains(file.ContentType))
+                return BadRequest("Unsupported image type");
+
+            // Magic-byte check
+            if (!ImageHelper.IsImage(bytes, options =>
+            {
+                options.AllowJpg = true;
+                options.AllowPng = true;
+            })) return BadRequest("File is not a valid image");
+
+            // Load image
+            using var image = Image.Load(bytes);
+
+            // Resize to max 1024x1024 while maintaining aspect ratio
+            image.Mutate(m => m.Resize(new ResizeOptions
+            {
+                Mode = ResizeMode.Max,
+                Size = new Size(1024, 1024)
+            }));
+
+            // Save as PNG
+            var encoder = new PngEncoder();
+
+            // Convert image to byte array
+            using var outStream = new MemoryStream();
+            image.Save(outStream, encoder);
+            var finalBytes = outStream.ToArray();
+
+            // Check if user already has a profile picture
+            var entity = await DbContext.ProfilePictures
+                .FirstOrDefaultAsync(x => x.UserId == user.Id && x.PictureType == PictureTypeEnum.Profile);
+
+            // If not, create new
+            if (entity == null)
+            {
+                entity = new ProfilePicture
+                {
+                    UserId = user.Id,
+                    PictureType = PictureTypeEnum.Profile,
+                    Name = "profile",
+                    Type = "png"
+                };
+                await DbContext.ProfilePictures.AddAsync(entity);
+            }
+            entity.Data = finalBytes;
+            await DbContext.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        /// <summary>
+        /// Returns the profile picture for the specified user as a PNG file.
+        /// </summary>
+        /// <remarks>This endpoint requires authentication. If no userId is provided, returns the currently signed-in user's profile picture.</remarks>
+        /// <param name="userId">The unique identifier of the user whose profile picture is requested. If null or empty, the profile picture of the currently
+        /// signed-in user is returned.</param>
+        /// <returns>An <see cref="ActionResult"/> containing the PNG image of the user's profile picture. Returns a 404 Not Found result if the profile picture does not exist, or a 500
+        /// Internal Server Error if the current user cannot be determined.</returns>
+        [Authorize]
+        [HttpGet("Profile")]
+        [HttpGet("Profile/{userId}")]
+        public async Task<ActionResult> Profile(string? userId)
+        {
+            // Validate user
+            var user = await GetSignedInUserAsync();
+            if (user == null) return StatusCode(500);
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                // If no userId provided, show own profile picture
+                userId = user.Id;
+            }
+
+            // Find the user's profile picture
+            var pic = await DbContext.ProfilePictures
+                    .Where(x => x.UserId == userId && x.PictureType == PictureTypeEnum.Profile)
+                    .FirstOrDefaultAsync();
+            if (pic == null) return NotFound();
+
+            return File(pic.Data, "image/png");
+        }
+
+        /// <summary>
+        /// Deletes the currently signed-in user's profile picture.
+        /// </summary>
+        /// <remarks>This action requires the user to be authenticated. Only the profile picture associated with
+        /// the currently signed-in user is affected.</remarks>
+        /// <returns>An <see cref="ActionResult"/> indicating the result of the operation. Returns <see
+        /// cref="Microsoft.AspNetCore.Mvc.NoContentResult"/> if the profile picture was successfully deleted; <see
+        /// cref="Microsoft.AspNetCore.Mvc.NotFoundResult"/> if no profile picture exists for the user; or <see
+        /// cref="Microsoft.AspNetCore.Mvc.StatusCodeResult"/> with status code 500 if the user could not be determined.</returns>
+        [HttpDelete("Profile"), Authorize]
+        public async Task<ActionResult> DeleteProfile()
+        {
+            // Validate user
+            var user = await GetSignedInUserAsync();
+            if (user == null) return StatusCode(500);
+
+            // Find profile picture
+            var pic = await DbContext.ProfilePictures
+                .Where(x => x.UserId == user.Id && x.PictureType == PictureTypeEnum.Profile)
+                .FirstOrDefaultAsync();
+
+            if (pic == null) return NotFound();
+
+            DbContext.ProfilePictures.Remove(pic);
+            await DbContext.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        /// <summary>
         /// Retrieves the profile picture with the specified identifier, optionally returning a resized miniature
         /// version.
         /// </summary>
