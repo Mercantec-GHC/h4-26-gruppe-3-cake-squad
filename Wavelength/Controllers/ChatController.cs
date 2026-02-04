@@ -11,13 +11,9 @@ namespace Wavelength.Controllers
 {
 	[ApiController]
 	[Route("[controller]")]
-	public class ChatController : ControllerBase
+	public class ChatController : BaseController
 	{
-		private readonly AppDbContext dbContext;
-		public ChatController(AppDbContext dbContext)
-		{
-			this.dbContext = dbContext;
-		}
+		public ChatController(AppDbContext dbContext) : base(dbContext) { }
 
 		#region Chat Room Management
 
@@ -50,13 +46,13 @@ namespace Wavelength.Controllers
 				.ToList();
 
 			// Validates that all participant IDs exist in the database.
-			if (await dbContext.Users
+			if (await DbContext.Users
 				.Where(u => dto.ParticipantIds.Contains(u.Id))
 				.CountAsync() != dto.ParticipantIds.Count()
 			) return BadRequest("All id's on the list must exist on the database.");
 
 			// Filters the participant IDs to only include users who have a user-visible question score with the creator.
-			dto.ParticipantIds = await dbContext.QuestionScores
+			dto.ParticipantIds = await DbContext.QuestionScores
 				.Where(qs => qs.PlayerId == creator.Id &&
 					dto.ParticipantIds.Contains(qs.QuizOwnerId) &&
 					qs.IsUserVisible)
@@ -67,7 +63,7 @@ namespace Wavelength.Controllers
 			{
 				Name = dto.RoomName
 			};
-			await dbContext.ChatRooms.AddAsync(chatRoom);
+			await DbContext.ChatRooms.AddAsync(chatRoom);
 
 			// Creates a list of all the partisipants to be added on the chat room.
 			var allParticipants = new List<Participant>();
@@ -87,8 +83,8 @@ namespace Wavelength.Controllers
 				});
 			}
 
-			await dbContext.Participants.AddRangeAsync(allParticipants);
-			await dbContext.SaveChangesAsync();
+			await DbContext.Participants.AddRangeAsync(allParticipants);
+			await DbContext.SaveChangesAsync();
 
 			return Ok("Chat room was created.");
 		}
@@ -104,7 +100,7 @@ namespace Wavelength.Controllers
 		public async Task<ActionResult<List<ChatRoomResponseDto>>> GetAllAsync()
 		{
 			// Retrieve all chat rooms
-			List<ChatRoomResponseDto> chatRooms = await dbContext.ChatRooms
+			List<ChatRoomResponseDto> chatRooms = await DbContext.ChatRooms
 				.Select(cr => new ChatRoomResponseDto
 				{
 					Id = cr.Id,
@@ -138,13 +134,13 @@ namespace Wavelength.Controllers
 			if (user == null) return StatusCode(500);
 			if (user.Roles.Contains(RoleEnum.Admin) == false)
 			{
-				bool isParticipant = await dbContext.Participants
+				bool isParticipant = await DbContext.Participants
 					.AnyAsync(p => p.ChatRoomId == chatRoomId && p.UserId == user.Id);
 				if (!isParticipant) return Unauthorized("You do not have permission to access this chat room.");
 			}
 
 			// Retrieve chat room.
-			var chatRoom = await dbContext.ChatRooms
+			var chatRoom = await DbContext.ChatRooms
 				.Where(cr => cr.Id == chatRoomId)
 				.Select(cr => new ChatRoomResponseDto
 				{
@@ -182,18 +178,18 @@ namespace Wavelength.Controllers
 			if (user == null) return StatusCode(500);
 			if (user.Roles.Contains(RoleEnum.Admin) == false)
 			{
-				bool isParticipant = await dbContext.Participants
+				bool isParticipant = await DbContext.Participants
 					.AnyAsync(p => p.ChatRoomId == dto.Id && p.UserId == user.Id);
 				if (!isParticipant) return Unauthorized("You do not have permission to access this chat room.");
 			}
 
 			// Update chat room.
-			var chatRoom = await dbContext.ChatRooms
+			var chatRoom = await DbContext.ChatRooms
 				.FirstOrDefaultAsync(cr => cr.Id == dto.Id);
 			if (chatRoom == null) return NotFound();
 
 			chatRoom.Name = dto.Name;
-			await dbContext.SaveChangesAsync();
+			await DbContext.SaveChangesAsync();
 
 			return Ok("Chat room updated successfully.");
 		}
@@ -218,7 +214,7 @@ namespace Wavelength.Controllers
 			if (string.IsNullOrWhiteSpace(chatRoomId)) return BadRequest("Chat room id can not be null or empty.");
 
 			// Retrieve chat room with participants
-			var chatRoom = await dbContext.ChatRooms
+			var chatRoom = await DbContext.ChatRooms
 				.Include(cr => cr.Participants)
 				.FirstOrDefaultAsync(cr => cr.Id == chatRoomId);
 			if (chatRoom == null) return NotFound();
@@ -235,10 +231,10 @@ namespace Wavelength.Controllers
 			// Remove chat room if no participants remain.
 			if (!chatRoom.Participants.Any())
 			{
-				dbContext.ChatRooms.Remove(chatRoom);
+				DbContext.ChatRooms.Remove(chatRoom);
 			}
 
-			await dbContext.SaveChangesAsync();
+			await DbContext.SaveChangesAsync();
 
 			return Ok("User has left the chat room.");
 		}
@@ -261,13 +257,13 @@ namespace Wavelength.Controllers
 			if (dto.ParticipantIds == null) return BadRequest("Participant list can not be empty.");
 			
 			// Checks if all the paticipant ids exists.
-			if (await dbContext.Users
+			if (await DbContext.Users
 				.Where(u => dto.ParticipantIds.Contains(u.Id))
 				.CountAsync() != dto.ParticipantIds.Count()
 			) return BadRequest("All id's on the list must exist on the database.");
 
 			// Retrieves the chat room with its participants.
-			var chatRoom = await dbContext.ChatRooms
+			var chatRoom = await DbContext.ChatRooms
 				.Include(cr => cr.Participants)
 				.FirstOrDefaultAsync(cr => cr.Id == dto.ChatRoomId);
 			if (chatRoom == null) return NotFound();
@@ -287,10 +283,10 @@ namespace Wavelength.Controllers
 			// Remove chat room if no participants remain.
 			if (!chatRoom.Participants.Any())
 			{
-				dbContext.ChatRooms.Remove(chatRoom);
+				DbContext.ChatRooms.Remove(chatRoom);
 			}
 
-			await dbContext.SaveChangesAsync();
+			await DbContext.SaveChangesAsync();
 
 			return Ok("Users were removed from the chat room.");
 		}
@@ -321,7 +317,7 @@ namespace Wavelength.Controllers
 			if (sender == null) return StatusCode(500);
 
 			// Retrieves the chat room with its participants & messages.
-			var chatRoom = await dbContext.ChatRooms
+			var chatRoom = await DbContext.ChatRooms
 				.Include(cr => cr.Participants)
 				.Include(cr => cr.ChatMessages)
 				.FirstOrDefaultAsync(cr => cr.Id == dto.ChatRoomId);
@@ -335,8 +331,8 @@ namespace Wavelength.Controllers
 				SenderId = sender.Id,
 				MessageContent = dto.MessageContent
 			};
-			await dbContext.ChatMessages.AddAsync(message);
-			await dbContext.SaveChangesAsync();
+			await DbContext.ChatMessages.AddAsync(message);
+			await DbContext.SaveChangesAsync();
 
 			return Ok("Message was created.");
 		}
@@ -364,13 +360,13 @@ namespace Wavelength.Controllers
 			// Restricting access.
 			if (!user.Roles.Contains(RoleEnum.Admin))
 			{
-				if (!await dbContext.Participants
+				if (!await DbContext.Participants
 					.AnyAsync(p => p.ChatRoomId == dto.ChatRoomId && 
 						p.UserId == user.Id)
 				) return Unauthorized();
 			}
 
-			var query = dbContext.ChatMessages.Where(cm => cm.ChatRoomId == dto.ChatRoomId);
+			var query = DbContext.ChatMessages.Where(cm => cm.ChatRoomId == dto.ChatRoomId);
 
 			// Apply cursor-based pagination.
 			if (dto.Cursor.HasValue) query = query.Where(cm => cm.CreatedAt < dto.Cursor.Value);
@@ -428,13 +424,13 @@ namespace Wavelength.Controllers
 			if (user == null) return Unauthorized();
 
 			// Fetch chat messgase.
-			var chatMessage = await dbContext.ChatMessages.FirstOrDefaultAsync(cm => cm.Id == messageId);
+			var chatMessage = await DbContext.ChatMessages.FirstOrDefaultAsync(cm => cm.Id == messageId);
 			if (chatMessage == null) return NotFound();
 
 			// Restricting access.
 			if (!user.Roles.Contains(RoleEnum.Admin))
 			{
-				if (!await dbContext.Participants
+				if (!await DbContext.Participants
 					.AnyAsync(p => p.ChatRoomId == chatMessage.ChatRoomId &&
 						p.UserId == user.Id)
 				) return Unauthorized();
@@ -442,31 +438,12 @@ namespace Wavelength.Controllers
 				if (chatMessage.SenderId != user.Id) return Unauthorized();
 			}
 
-			dbContext.ChatMessages.Remove(chatMessage);
-			await dbContext.SaveChangesAsync();
+			DbContext.ChatMessages.Remove(chatMessage);
+			await DbContext.SaveChangesAsync();
 
 			return Ok();
 		}
 
-		#endregion
-
-		#region Helpers
-		/// <summary>
-		/// Asynchronously retrieves the currently signed-in user, if available.
-		/// </summary>
-		/// <returns>A <see cref="User"/> object representing the signed-in user, or <see langword="null"/> if no user is signed in or
-		/// the user cannot be found.</returns>
-		protected async Task<User?> GetSignedInUserAsync()
-		{
-			var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-			if (userId == null) return null;
-			var user = await dbContext.Users.Where(u => u.Id == userId)
-			 .Include(u => u.UserRoles)
-			 .FirstOrDefaultAsync();
-			if (user == null) return null;
-
-			return user;
-		}
 		#endregion
 	}
 }
