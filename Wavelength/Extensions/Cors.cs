@@ -29,10 +29,23 @@
 					policy.SetIsOriginAllowed(origin =>
 					{
 						var uri = new Uri(origin);
-						return uri.Host == "localhost" ||
+
+                        if (uri.Host == "localhost" ||
 							uri.Host == "127.0.0.1" ||
-							uri.Host == "0.0.0.0";
-					})
+							uri.Host == "0.0.0.0")
+                            return true;
+
+                        foreach (var o in origins)
+                        {
+                            if (Uri.TryCreate(o, UriKind.Absolute, out var allowedUri))
+                            {
+                                if (allowedUri.Host.Equals(uri.Host, StringComparison.OrdinalIgnoreCase))
+                                    return true;
+                            }
+                        }
+
+                        return false;
+                    })
 					.AllowAnyHeader()
 					.AllowAnyMethod()
 					.AllowCredentials();
