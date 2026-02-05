@@ -2,6 +2,7 @@
 {
 	public enum UserVisibilityEnum
 	{
+		Visible,
 		Blocked,
 		Dismissed
 	}

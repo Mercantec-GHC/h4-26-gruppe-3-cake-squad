@@ -9,10 +9,23 @@ using Wavelength.Data;
 
 namespace Wavelength.Controllers
 {
+	/// <summary>
+	/// Provides API endpoints for managing chat rooms, participants, and messages within the application. Supports
+	/// operations such as creating chat rooms, retrieving chat room details, managing participants, and sending or
+	/// retrieving chat messages.
+	/// </summary>
+	/// <remarks>All endpoints require authentication, and certain actions are restricted to users with specific
+	/// roles (such as 'Admin') or to participants of a chat room. The controller enforces authorization and input
+	/// validation to ensure secure and consistent chat functionality. Responses follow standard HTTP status conventions,
+	/// providing clear feedback for success and error scenarios.</remarks>
 	[ApiController]
 	[Route("[controller]")]
 	public class ChatController : BaseController
 	{
+		/// <summary>
+		/// Initializes a new instance of the ChatController class using the specified database context.
+		/// </summary>
+		/// <param name="dbContext">The database context to be used by the controller for data access operations. Cannot be null.</param>
 		public ChatController(AppDbContext dbContext) : base(dbContext) { }
 
 		#region Chat Room Management
@@ -36,7 +49,7 @@ namespace Wavelength.Controllers
 			if (string.IsNullOrWhiteSpace(dto.RoomName)) return BadRequest("RoomName can not be null or empty.");
 			if (dto.ParticipantIds == null || dto.ParticipantIds.Count == 0) return BadRequest("At least one participant must be chosen.");
 
-			var creator = await GetSignedInUserAsync();
+			var creator = await GetSignedInUserAsync(q => q.Include(u => u.UserVisibilities));
 			if (creator == null) return StatusCode(500);
 
 			// Removes the creator from the participant list, if present, and ensures all participant IDs are unique.
@@ -51,14 +64,13 @@ namespace Wavelength.Controllers
 				.CountAsync() != dto.ParticipantIds.Count()
 			) return BadRequest("All id's on the list must exist on the database.");
 
-			// Filters the participant IDs to only include users who have a user-visible question score with the creator.
-			dto.ParticipantIds = await DbContext.QuestionScores
-				.Where(qs => qs.PlayerId == creator.Id &&
-					dto.ParticipantIds.Contains(qs.QuizOwnerId) &&
-					qs.IsUserVisible)
-				.Select(qs => qs.QuizOwnerId)
-				.ToListAsync();
-						
+			// Filters the participant IDs to only include users who are visible to the creator based on user visibilities.
+			dto.ParticipantIds = creator.UserVisibilities
+				.Where(uv => dto.ParticipantIds.Contains(uv.TargetUserId) &&
+					uv.Visibility == UserVisibilityEnum.Visible)
+				.Select(uv => uv.TargetUserId)
+				.ToList();
+
 			var chatRoom = new ChatRoom
 			{
 				Name = dto.RoomName
@@ -415,7 +427,7 @@ namespace Wavelength.Controllers
 		/// cref="UnauthorizedResult"/> if the user is not authorized; or <see cref="NotFoundResult"/> if the message does not
 		/// exist.</returns>
 		[HttpDelete("messages/{messageId}"), Authorize]
-		public async Task<ActionResult> RemoveChatRoomeMessage(int messageId)
+		public async Task<ActionResult> RemoveChatRoomeMessageAsync(int messageId)
 		{
 			// Validate input.
 			if (messageId == 0) return BadRequest("Message id can not be empty.");

@@ -5,7 +5,6 @@
         public string PlayerId { get; set; }
         public string QuizOwnerId { get; set; }
         public int MatchPercent { get; set; }
-        public bool IsUserVisible { get; set; }
 
         // Relations
         public User Player { get; set; }

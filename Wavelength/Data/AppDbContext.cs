@@ -21,7 +21,7 @@ namespace Wavelength.Data
         public DbSet<ChatMessage> ChatMessages { get; set; }
         public DbSet<UserVisibility> UserVisibilities { get; set; }
 
-		public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
 
         public override int SaveChanges()
         {
@@ -121,7 +121,7 @@ namespace Wavelength.Data
 			// Configure the one-to-many relationship between QuizScore and User (Player)
 			modelBuilder.Entity<QuizScore>()
                 .HasOne(qs => qs.Player)
-                .WithMany()
+                .WithMany(p => p.QuizScores)
                 .HasForeignKey(qs => qs.PlayerId);
 
 			// Configure the one-to-many relationship between QuizScore and User (QuizOwner)
@@ -154,16 +154,22 @@ namespace Wavelength.Data
 				.WithMany(cr => cr.ChatMessages)
 				.HasForeignKey(cm => cm.ChatRoomId);
 
-            modelBuilder.Entity<UserVisibility>()
+			// Configure the relationships for UserVisibility
+			modelBuilder.Entity<UserVisibility>()
                 .HasOne(uv => uv.SourceUser)
-                .WithMany()
+                .WithMany(su => su.UserVisibilities)
                 .HasForeignKey(uv => uv.SourceUserId);
 
-            modelBuilder.Entity<UserVisibility>()
+			// Configure the relationship between UserVisibility and User (TargetUser)
+			modelBuilder.Entity<UserVisibility>()
                 .HasOne(uv => uv.TargetUser)
                 .WithMany()
                 .HasForeignKey(uv => uv.TargetUserId);
 
+			// Configure the enum to string conversion for UserVisibility.Visibility
+			modelBuilder.Entity<UserVisibility>()
+                .Property(uv => uv.Visibility)
+                .HasConversion<string>();
 		}
 
         /// <summary>
