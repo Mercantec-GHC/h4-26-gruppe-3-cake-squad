@@ -1,9 +1,10 @@
 services:
   wavelength:
-    image: ${DOCKER_REGISTRY-}wavelength
+    image: ${DOCKER_REGISTRY-}wavelengthapi
     build:
       context: .
       dockerfile: Wavelength/Dockerfile
+    container_name: wavelength-api
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT}
       - ASPNETCORE_URLS=http://+:80
@@ -13,7 +14,7 @@ services:
       - Jwt__Secret=${JWT_SECRET}
       - ConnectionStrings__DefaultConnection=${DEFAULT_CONNECTION}
     ports:
-      - "8080:80"
+      - "${HTTP_PORT}:80"
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
