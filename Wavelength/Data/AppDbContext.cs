@@ -19,6 +19,7 @@ namespace Wavelength.Data
         public DbSet<Participant> Participants { get; set; }
         public DbSet<ChatRoom> ChatRooms { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
+        public DbSet<UserVisibility> UserVisibilities { get; set; }
 
 		public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
 
@@ -152,7 +153,17 @@ namespace Wavelength.Data
 				.HasOne(cm => cm.ChatRoom)
 				.WithMany(cr => cr.ChatMessages)
 				.HasForeignKey(cm => cm.ChatRoomId);
-            
+
+            modelBuilder.Entity<UserVisibility>()
+                .HasOne(uv => uv.SourceUser)
+                .WithMany()
+                .HasForeignKey(uv => uv.SourceUserId);
+
+            modelBuilder.Entity<UserVisibility>()
+                .HasOne(uv => uv.TargetUser)
+                .WithMany()
+                .HasForeignKey(uv => uv.TargetUserId);
+
 		}
 
         /// <summary>
