@@ -4,7 +4,6 @@ using Commons.Models.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 using Wavelength.Data;
 
 namespace Wavelength.Controllers
@@ -280,7 +279,7 @@ namespace Wavelength.Controllers
 				.FirstOrDefaultAsync(cr => cr.Id == dto.ChatRoomId);
 			if (chatRoom == null) return NotFound();
 
-			// Removes the specified participants from the chat room.
+			// Filters the participants to be removed to only include those who are currently part of the chat room.
 			var participants = chatRoom.Participants
 				.Where(p => dto.ParticipantIds.Contains(p.UserId))
 				.ToList();
