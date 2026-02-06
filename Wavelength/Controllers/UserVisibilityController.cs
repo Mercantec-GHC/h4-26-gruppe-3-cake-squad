@@ -88,5 +88,83 @@ namespace Wavelength.Controllers
 
 			return Ok();
 		}
+
+		/// <summary>
+		/// Blocks the specified user for the currently signed-in user.
+		/// </summary>
+		/// <param name="targetId">The unique identifier of the user to be blocked. Cannot be null, empty, or consist only of white-space characters.</param>
+		/// <returns>An <see cref="ActionResult"/> indicating the result of the block operation. Returns <see cref="OkResult"/> if the
+		/// user was successfully blocked; <see cref="BadRequestObjectResult"/> if the target user is already blocked or if
+		/// the target ID is invalid; <see cref="NotFoundResult"/> if the signed-in user is not found.</returns>
+		[HttpPost("Block"), Authorize]
+		public async Task<ActionResult> BlockUserAsync(string targetId)
+		{
+			// Validate input.
+			if (string.IsNullOrWhiteSpace(targetId)) return BadRequest("Target user id can not be empty.");
+
+			var user = await GetSignedInUserAsync(q => q.Include(u => u.UserVisibilities));
+			if (user == null) return StatusCode(500);
+
+			// Logic for existing UserVisibility.
+			var userVisibility = user.UserVisibilities.FirstOrDefault(uv => uv.TargetUserId == targetId);
+			if (userVisibility != null)
+			{
+				if (userVisibility.Visibility == UserVisibilityEnum.Blocked) return BadRequest("Target user is already blocked.");
+
+				userVisibility.Visibility = UserVisibilityEnum.Blocked;
+
+				await DbContext.SaveChangesAsync();
+				return Ok();
+			}
+
+			// Logic for new UserVisibility.
+			var newRule = new UserVisibility
+			{
+				SourceUserId = user.Id,
+				TargetUserId = targetId,
+				Visibility = UserVisibilityEnum.Blocked
+			};
+
+			DbContext.UserVisibilities.Add(newRule);
+			await DbContext.SaveChangesAsync();
+
+			return Ok();
+		}
+
+		[HttpPost("Dismissed"), Authorize]
+		public async Task<ActionResult> DismissUserAsync(string targetId)
+		{
+			// Validate input.
+			if (string.IsNullOrWhiteSpace(targetId)) return BadRequest("Target user id can not be empty.");
+
+			var user = await GetSignedInUserAsync(q => q.Include(u => u.UserVisibilities));
+			if (user == null) return StatusCode(500);
+
+			// Logic for existing UserVisibility.
+			var userVisibility = user.UserVisibilities.FirstOrDefault(uv => uv.TargetUserId == targetId);
+			if (userVisibility != null)
+			{
+				if (userVisibility.Visibility == UserVisibilityEnum.Dismissed || 
+					userVisibility.Visibility == UserVisibilityEnum.Blocked
+				) return BadRequest($"Target user is already {userVisibility.Visibility.ToString()}.");
+
+				userVisibility.Visibility = UserVisibilityEnum.Dismissed;
+
+				await DbContext.SaveChangesAsync();
+				return Ok();
+			}
+
+			// Logic for new UserVisibility.
+			var newRule = new UserVisibility
+			{
+				SourceUserId = user.Id,
+				TargetUserId = targetId,
+				Visibility = UserVisibilityEnum.Dismissed
+			};
+
+			DbContext.UserVisibilities.Add(newRule);
+			await DbContext.SaveChangesAsync();
+			return Ok();
+		}
 	}
 }
