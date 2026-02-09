@@ -1,0 +1,92 @@
+﻿using Commons.Enums;
+using Commons.Models.Dtos;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Wavelength.Data;
+
+namespace Wavelength.Controllers
+{
+	/// <summary>
+	/// Provides API endpoints for managing the visibility settings of users relative to the currently signed-in user.
+	/// </summary>
+	/// <remarks>This controller requires authentication for its operations. It enables clients to set or update the
+	/// visibility level of a target user, which determines how that user is seen by the current user within the
+	/// application. All actions are subject to authorization and input validation.</remarks>
+	[ApiController]
+	[Route("[controller]")]
+	public class UserVisibilityController : BaseController
+	{
+		/// <summary>
+		/// Initializes a new instance of the UserVisibilityController class using the specified database context.
+		/// </summary>
+		/// <param name="dbContext">The database context to be used for data access operations. Cannot be null.</param>
+		public UserVisibilityController(AppDbContext dbContext) : base(dbContext) { }
+
+		/// <summary>
+		/// Sets the visibility level of a target user as seen by a source user.
+		/// </summary>
+		/// <remarks>This action is restricted to users with the 'admin' role. If a visibility record between the
+		/// specified users does not exist, a new record is created.</remarks>
+		/// <param name="dto">An object containing the source user ID, target user ID, and the desired visibility level. All fields must be
+		/// provided and non-empty.</param>
+		/// <returns>An HTTP 200 OK result if the visibility is set successfully; otherwise, a 400 Bad Request or 404 Not Found result
+		/// if the input is invalid or users are not found.</returns>
+		[HttpPost("admin/set"), Authorize(Roles = "admin")]
+		public async Task<ActionResult> SetUserVisibilityAsync(UserVisibilityRequestDto dto)
+		{
+			// Validate input
+			if (dto == null) return BadRequest("Request body can not be null.");
+			if (string.IsNullOrWhiteSpace(dto.SourceUserId)) return BadRequest("Source user id can not be empty.");
+			if (string.IsNullOrWhiteSpace(dto.TargetUserId)) return BadRequest("Target user id can not be empty.");
+			if (string.IsNullOrWhiteSpace(dto.VisibilityEnum)) return BadRequest("Visibility cna not be empty.");
+
+			UserVisibilityEnum visibility;
+			if (!Enum.TryParse<UserVisibilityEnum>(dto.VisibilityEnum, true, out visibility)) return BadRequest("Failed to parse visibility.");
+
+			if (!await DbContext.Users.AnyAsync(u => u.Id == dto.TargetUserId || u.Id == dto.SourceUserId)) return NotFound();
+
+			// Update or create visibility record
+			var userVisibility = await DbContext.UserVisibilities
+				.FirstOrDefaultAsync(uv => uv.TargetUserId == dto.TargetUserId &&
+					uv.SourceUserId == dto.SourceUserId);
+			if (userVisibility == null)
+			{
+				userVisibility = new UserVisibility
+				{
+					SourceUserId = dto.SourceUserId,
+					TargetUserId = dto.TargetUserId
+				};
+				await DbContext.UserVisibilities.AddAsync(userVisibility);
+			}
+
+			userVisibility.Visibility = visibility;
+			await DbContext.SaveChangesAsync();
+
+			return Ok();
+		}
+
+		/// <summary>
+		/// Deletes the user visibility entry with the specified identifier.
+		/// </summary>
+		/// <param name="visibilityId">The unique identifier of the user visibility entry to delete. Must be a non-zero value.</param>
+		/// <returns>An <see cref="ActionResult"/> indicating the result of the delete operation. Returns <see cref="OkResult"/> if the
+		/// entry was deleted successfully, <see cref="NotFoundResult"/> if the entry does not exist, or <see
+		/// cref="BadRequestObjectResult"/> if the identifier is invalid.</returns>
+		[HttpDelete("admin/delete"), Authorize(Roles = "admin")]
+		public async Task<ActionResult> DeleteUserVisibilityAsync(int visibilityId)
+		{
+			// Validate input.
+			if (visibilityId == 0) return BadRequest("Visibility id can not be empty.");
+
+			// Fetches the user visibility.
+			var userVisibility = await DbContext.UserVisibilities.FirstOrDefaultAsync(uv => uv.Id == visibilityId);
+			if (userVisibility == null) return NotFound();
+
+			DbContext.UserVisibilities.Remove(userVisibility);
+			await DbContext.SaveChangesAsync();
+
+			return Ok();
+		}
+	}
+}
