@@ -79,9 +79,11 @@ namespace Wavelength.Controllers
                     return BadRequest("Each question must have at least two answers.");
                 if (question.CorrectOptionIndex < 0 || question.CorrectOptionIndex >= question.Options.Count)
                     return BadRequest("Each question must have a valid correct answer index.");
-                if (question.Score <= 0)
-                    return BadRequest("Each question must have a score greater than zero.");
-                
+                //if (question.Score <= 0)
+                //    return BadRequest("Each question must have a score greater than zero.");
+                if (question.Score != 1)
+                    return BadRequest("Each question must have a score 1.");
+
                 totalScore += question.Score;
 
                 foreach (var option in question.Options)
