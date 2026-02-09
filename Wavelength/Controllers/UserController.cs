@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Wavelength.Data;
-using Commons.Models.Dtos;
+﻿using Commons.Enums;
 using Commons.Models.Database;
-using System.Security.Claims;
+using Commons.Models.Dtos;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using Wavelength.Data;
 
 namespace Wavelength.Controllers
 {
@@ -36,6 +37,21 @@ namespace Wavelength.Controllers
 			};
 
 			return Ok(userDto);
+		}
+
+		[HttpPut("SetTags")]
+		public async Task<ActionResult> SetTags(List<TagsEnum> tags)
+		{
+			var user = await GetSignedInUserAsync();
+			if (user == null) return StatusCode(500);
+
+			int maxTags = 10;
+			if (tags.Count > maxTags) return BadRequest($"You can only have up to {maxTags} tags.");
+
+            user.ValueTags = tags;
+			await DbContext.SaveChangesAsync();
+
+            return Ok(tags);
 		}
 	}
 }
