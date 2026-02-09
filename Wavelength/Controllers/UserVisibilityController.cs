@@ -88,5 +88,120 @@ namespace Wavelength.Controllers
 
 			return Ok();
 		}
+
+		/// <summary>
+		/// Blocks the specified user for the currently signed-in user.
+		/// </summary>
+		/// <param name="targetId">The unique identifier of the user to be blocked. Cannot be null, empty, or consist only of white-space characters.</param>
+		/// <returns>An <see cref="ActionResult"/> indicating the result of the block operation. Returns <see cref="OkResult"/> if the
+		/// user was successfully blocked; <see cref="BadRequestObjectResult"/> if the target user is already blocked or if
+		/// the target ID is invalid; <see cref="NotFoundResult"/> if the signed-in user is not found.</returns>
+		[HttpPost("Block"), Authorize]
+		public async Task<ActionResult> BlockUserAsync(string targetId)
+		{
+			// Validate input.
+			if (string.IsNullOrWhiteSpace(targetId)) return BadRequest("Target user id can not be empty.");
+
+			var user = await GetSignedInUserAsync(q => q.Include(u => u.UserVisibilities));
+			if (user == null) return StatusCode(500);
+
+			// Logic for existing UserVisibility.
+			var userVisibility = user.UserVisibilities.FirstOrDefault(uv => uv.TargetUserId == targetId);
+			if (userVisibility != null)
+			{
+				if (userVisibility.Visibility == UserVisibilityEnum.Blocked) return BadRequest("Target user is already blocked.");
+
+				userVisibility.Visibility = UserVisibilityEnum.Blocked;
+
+				await DbContext.SaveChangesAsync();
+				return Ok();
+			}
+
+			// Logic for new UserVisibility.
+			var newRule = new UserVisibility
+			{
+				SourceUserId = user.Id,
+				TargetUserId = targetId,
+				Visibility = UserVisibilityEnum.Blocked
+			};
+
+			DbContext.UserVisibilities.Add(newRule);
+			await DbContext.SaveChangesAsync();
+
+			return Ok();
+		}
+
+		/// <summary>
+		/// Marks the specified user as dismissed by the currently signed-in user.
+		/// </summary>
+		/// <remarks>Use this method to prevent the specified user from appearing in the signed-in user's visibility
+		/// list. The dismissed state persists until changed by another action. Requires authentication.</remarks>
+		/// <param name="targetId">The unique identifier of the user to be dismissed. Cannot be null, empty, or whitespace.</param>
+		/// <returns>An <see cref="ActionResult"/> indicating the outcome of the operation. Returns <see cref="OkResult"/> if the user
+		/// is successfully dismissed; <see cref="BadRequestResult"/> if the target user ID is invalid or the user is already
+		/// dismissed or blocked; <see cref="StatusCodeResult"/> with status 500 if the signed-in user cannot be retrieved.</returns>
+		[HttpPost("Dismissed"), Authorize]
+		public async Task<ActionResult> DismissUserAsync(string targetId)
+		{
+			// Validate input.
+			if (string.IsNullOrWhiteSpace(targetId)) return BadRequest("Target user id can not be empty.");
+
+			var user = await GetSignedInUserAsync(q => q.Include(u => u.UserVisibilities));
+			if (user == null) return StatusCode(500);
+
+			// Logic for existing UserVisibility.
+			var userVisibility = user.UserVisibilities.FirstOrDefault(uv => uv.TargetUserId == targetId);
+			if (userVisibility != null)
+			{
+				if (userVisibility.Visibility == UserVisibilityEnum.Dismissed || 
+					userVisibility.Visibility == UserVisibilityEnum.Blocked
+				) return BadRequest($"Target user is already {userVisibility.Visibility.ToString()}.");
+
+				userVisibility.Visibility = UserVisibilityEnum.Dismissed;
+
+				await DbContext.SaveChangesAsync();
+				return Ok();
+			}
+
+			// Logic for new UserVisibility.
+			var newRule = new UserVisibility
+			{
+				SourceUserId = user.Id,
+				TargetUserId = targetId,
+				Visibility = UserVisibilityEnum.Dismissed
+			};
+
+			DbContext.UserVisibilities.Add(newRule);
+			await DbContext.SaveChangesAsync();
+			return Ok();
+		}
+
+		/// <summary>
+		/// Unblocks the specified user for the currently signed-in user.
+		/// </summary>
+		/// <param name="targetId">The unique identifier of the user to unblock. Cannot be null, empty, or whitespace.</param>
+		/// <returns>An <see cref="ActionResult"/> indicating the result of the unblock operation. Returns <see cref="OkResult"/> if
+		/// the user was successfully unblocked; otherwise, returns a <see cref="BadRequestObjectResult"/> if the target user
+		/// is not blocked or has no visibility settings, or a <see cref="StatusCodeResult"/> with status code 500 if the
+		/// signed-in user cannot be retrieved.</returns>
+		[HttpPost("Unblock"), Authorize]
+		public async Task<ActionResult> UnblockUserAsync(string targetId)
+		{
+			// Validate input.
+			if (string.IsNullOrWhiteSpace(targetId)) return BadRequest("Target user id can not be empty.");
+
+			var user = await GetSignedInUserAsync(q =>  q.Include(u => u.UserVisibilities));
+			if (user == null) return StatusCode(500);
+
+			// Logic for existing UserVisibility.
+			var userVisibility = user.UserVisibilities.FirstOrDefault(uv => uv.TargetUserId == targetId);
+			if (userVisibility == null) return BadRequest("Target user has no visibility settings.");
+			if (userVisibility.Visibility != UserVisibilityEnum.Blocked) return BadRequest("Target user is not blocked.");
+
+			userVisibility.Visibility = UserVisibilityEnum.Visible;
+			await DbContext.SaveChangesAsync();
+
+			return Ok();
+		}
 	}
 }
