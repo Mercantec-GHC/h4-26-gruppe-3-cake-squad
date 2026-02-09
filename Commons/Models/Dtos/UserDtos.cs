@@ -1,4 +1,6 @@
-﻿namespace Commons.Models.Dtos
+﻿using Commons.Enums;
+
+namespace Commons.Models.Dtos
 {
     public class MeResponseDto
     {
@@ -23,5 +25,15 @@
         public string Id { get; set; }
         public string FirstName { get; set; }
         public string LastName { get; set; }
+    }
+
+    public class DiscoverUserResponseDto
+    {
+        public string Id { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public string? Description { get; set; }
+        public List<int> Pictures { get; set; }
+        public List<string> Tags { get; set; }
     }
 }
