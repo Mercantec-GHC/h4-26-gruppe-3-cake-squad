@@ -1,4 +1,5 @@
-﻿using Commons.Models.Database;
+﻿using Commons.Enums;
+using Commons.Models.Database;
 using Commons.Models.Dtos;
 using Commons.Models.QuizModels;
 using Microsoft.AspNetCore.Authorization;
@@ -194,11 +195,19 @@ namespace Wavelength.Controllers
             {
                 PlayerId = user.Id,
                 QuizOwnerId = targetUser.Id,
-                MatchPercent = matchPercent,
-                IsUserVisible = passed
+                MatchPercent = matchPercent
             };
-            await DbContext.QuestionScores.AddAsync(quizScore);
-            await DbContext.SaveChangesAsync();
+			await DbContext.QuestionScores.AddAsync(quizScore);
+
+            UserVisibility visibility = new UserVisibility
+            {
+                SourceUserId = user.Id,
+                TargetUserId = targetUser.Id,
+                Visibility = passed ? UserVisibilityEnum.Visible : UserVisibilityEnum.Dismissed
+			};
+            await DbContext.UserVisibilities.AddAsync(visibility);
+
+			await DbContext.SaveChangesAsync();
 
             return Ok(new QuizResultDto
             {
