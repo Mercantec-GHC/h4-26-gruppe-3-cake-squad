@@ -214,7 +214,7 @@ namespace Wavelength.Controllers
             bool isVisible = false;
 
             // Determine visibility
-            var user = await GetSignedInUserAsync();
+            var user = await GetSignedInUserAsync(q => q.Include(u => u.UserVisibilities));
             if (user == null) return StatusCode(500);
 
             if (string.IsNullOrEmpty(userId))
@@ -231,8 +231,8 @@ namespace Wavelength.Controllers
             else
             {
                 // Check user visibility
-                isVisible = await DbContext.QuestionScores.AnyAsync(qs => qs.PlayerId == user!.Id && qs.QuizOwnerId == userId && qs.IsUserVisible);
-            }
+                isVisible = user!.UserVisibilities.Any(uv => uv.TargetUserId == userId && uv.Visibility == UserVisibilityEnum.Visible);
+			}
 
             // Find the user's avatar
             var pic = await DbContext.ProfilePictures

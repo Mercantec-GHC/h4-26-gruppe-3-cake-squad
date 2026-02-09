@@ -18,9 +18,11 @@ namespace Commons.Models.Database
 		public List<UserRole> UserRoles { get; set; }
 		public List<ProfilePicture> ProfilePictures { get; set; }
 		public List<Participant> Participants { get; set; }
+		public List<QuizScore> QuizScores { get; set; }
+		public List<UserVisibility> UserVisibilities { get; set; }
 
-        // Computed property for roles
-        [NotMapped]
+		// Computed property for roles
+		[NotMapped]
         public List<RoleEnum> Roles => (UserRoles ?? new List<UserRole>())
 			.Select(ur => ur.Role)
 			.Union(new[] { RoleEnum.User })

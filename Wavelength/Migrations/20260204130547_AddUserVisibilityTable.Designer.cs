@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Wavelength.Data;
@@ -11,9 +12,11 @@ using Wavelength.Data;
 namespace Wavelength.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260204130547_AddUserVisibilityTable")]
+    partial class AddUserVisibilityTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -216,6 +219,9 @@ namespace Wavelength.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<bool>("IsUserVisible")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("MatchPercent")
                         .HasColumnType("integer");
 
@@ -359,9 +365,8 @@ namespace Wavelength.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Visibility")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("Visibility")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -446,7 +451,7 @@ namespace Wavelength.Migrations
             modelBuilder.Entity("Commons.Models.Database.QuizScore", b =>
                 {
                     b.HasOne("Commons.Models.Database.User", "Player")
-                        .WithMany("QuizScores")
+                        .WithMany()
                         .HasForeignKey("PlayerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -487,7 +492,7 @@ namespace Wavelength.Migrations
             modelBuilder.Entity("UserVisibility", b =>
                 {
                     b.HasOne("Commons.Models.Database.User", "SourceUser")
-                        .WithMany("UserVisibilities")
+                        .WithMany()
                         .HasForeignKey("SourceUserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -524,11 +529,7 @@ namespace Wavelength.Migrations
                     b.Navigation("Questionnaire")
                         .IsRequired();
 
-                    b.Navigation("QuizScores");
-
                     b.Navigation("UserRoles");
-
-                    b.Navigation("UserVisibilities");
                 });
 #pragma warning restore 612, 618
         }
