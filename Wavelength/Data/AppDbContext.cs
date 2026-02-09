@@ -20,6 +20,7 @@ namespace Wavelength.Data
         public DbSet<ChatRoom> ChatRooms { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
         public DbSet<UserVisibility> UserVisibilities { get; set; }
+        public DbSet<EmailValidation> EmailValidations { get; set; }
 
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
 
@@ -170,7 +171,18 @@ namespace Wavelength.Data
 			modelBuilder.Entity<UserVisibility>()
                 .Property(uv => uv.Visibility)
                 .HasConversion<string>();
-		}
+
+            // Configure the relationship between EmailValidation and User
+            modelBuilder.Entity<EmailValidation>()
+                .HasOne(ev => ev.User)
+                .WithMany()
+                .HasForeignKey(ev => ev.UserId);
+
+            // Create a unique index on the ValidationCode column in EmailValidation to ensure uniqueness
+            modelBuilder.Entity<EmailValidation>()
+                .HasIndex(ev => ev.ValidationCode)
+                .IsUnique();
+        }
 
         /// <summary>
         /// Deserializes a JSON string into a <see cref="Quiz"/> object.
