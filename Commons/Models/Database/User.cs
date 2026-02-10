@@ -11,7 +11,7 @@ namespace Commons.Models.Database
 		public string? Description { get; set; } = string.Empty;
 		public string Email { get; set; }
 		public string HashedPassword { get; set; }
-		public List<TagsEnum> ValueTags { get; set; } = new();
+		public List<Interest> ValueTags { get; set; } = new();
 		public bool IsEmailVerified { get; set; } = false;
 
         // Relations
