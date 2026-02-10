@@ -12,9 +12,10 @@ namespace Commons.Models.Database
 		public string Email { get; set; }
 		public string HashedPassword { get; set; }
 		public List<TagsEnum> ValueTags { get; set; } = new();
+		public bool IsEmailVerified { get; set; } = false;
 
-		// Relations
-		public Questionnaire Questionnaire { get; set; }
+        // Relations
+        public Questionnaire Questionnaire { get; set; }
 		public List<UserRole> UserRoles { get; set; }
 		public List<ProfilePicture> ProfilePictures { get; set; }
 		public List<Participant> Participants { get; set; }
