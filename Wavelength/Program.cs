@@ -10,8 +10,8 @@ namespace Wavelength
 		{
 			var builder = WebApplication.CreateBuilder(args);
 
-			// Add services to the container.
-			builder.Services.AddControllers();
+            // Add controller services
+            builder.Services.AddControllers();
 
 			// Add OpenAPI/Swagger support
 			builder.Services.AddOpenApi();
@@ -29,8 +29,12 @@ namespace Wavelength
 			// Add swagger gen.
 			builder.Services.AddSwaggerGenWithAuth();
 
-			// Register JwtService
-			builder.Services.AddScoped<JwtService>();
+            // Add jwt service
+            builder.Services.AddScoped<JwtService>();
+
+            // Add email services
+            builder.Services.AddSingleton<IEmailTemplateLoader, EmailTemplateLoader>();
+            builder.Services.AddScoped<MailService>();
 
             // Add health checks
             builder.Services.AddHealthChecks();
