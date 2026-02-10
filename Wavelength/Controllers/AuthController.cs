@@ -217,7 +217,8 @@ namespace Wavelength.Controllers
                 LastName = user.LastName,
                 Birthday = user.Birthday,
                 Email = user.Email,
-                Description = user.Description
+                Description = user.Description,
+                Tags = user.ValueTags.Select(t => t.ToString()).ToList()
             };
 
             return Ok(meDto);

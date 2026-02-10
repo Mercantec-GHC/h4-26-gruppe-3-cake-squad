@@ -35,8 +35,9 @@ namespace Wavelength.Controllers
 				Id = user.Id,
 				FirstName = user.FirstName,
 				LastName = user.LastName,
-				Description = user.Description
-			};
+				Description = user.Description,
+                Tags = user.ValueTags.Select(t => t.ToString()).ToList()
+            };
 
 			return Ok(userDto);
 		}
