@@ -32,6 +32,9 @@ namespace Wavelength
 			// Register JwtService
 			builder.Services.AddScoped<JwtService>();
 
+			// Register AesEncryptionService.
+			builder.Services.AddSingleton<AesEncryptionService>();
+
             // Add health checks
             builder.Services.AddHealthChecks();
 
