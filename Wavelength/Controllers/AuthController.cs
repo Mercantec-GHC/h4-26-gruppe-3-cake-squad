@@ -1,207 +1,171 @@
 ﻿using Commons.Models.Dtos;
-using Commons.Models.Database;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
-using System.Text.RegularExpressions;
 using Wavelength.Data;
 using Wavelength.Services;
 using Microsoft.AspNetCore.Authorization;
 
 namespace Wavelength.Controllers
 {
+    /// <summary>
+    /// Provides API endpoints for user authentication, registration, profile management, and related operations.
+    /// </summary>
+    /// <remarks>This controller handles user authentication workflows, including registration, login, email
+    /// verification, token refresh, password updates, and profile retrieval. All endpoints are routed under the
+    /// "[controller]" route and use dependency-injected services for authentication logic. Some actions require the
+    /// user to be authenticated via authorization attributes.</remarks>
     [ApiController]
     [Route("[controller]")]
     public class AuthController : BaseController
     {
-        private readonly JwtService jwtService;
+        private readonly AuthService authService;
 
-        public AuthController(AppDbContext dbContext, JwtService jwtService) : base(dbContext)
+        /// <summary>
+        /// Initializes a new instance of the AuthController class with the specified database context and
+        /// authentication service.
+        /// </summary>
+        /// <param name="dbContext">The database context used to access application data.</param>
+        /// <param name="authService">The authentication service used to handle user authentication operations.</param>
+        public AuthController(AppDbContext dbContext, AuthService authService) : base(dbContext)
         {
-            this.jwtService = jwtService;
+            this.authService = authService;
         }
 
         /// <summary>
-        /// Registers a new user account with the provided registration details.
+        /// Registers a new user account using the specified registration details.
         /// </summary>
-        /// <remarks>The user must be at least 18 years old, and the email address must be unique and in a
-        /// valid format. The password must be at least 8 characters long and meet complexity requirements. This action
-        /// does not authenticate the user after registration.</remarks>
-        /// <param name="dto">An object containing the user's registration information, including first name, last name, email address,
-        /// password, and birthday. All fields are required.</param>
-        /// <returns>An HTTP 200 OK result containing the created user if registration is successful; otherwise, a Bad Request
-        /// result with an error message describing the validation failure.</returns>
+        /// <param name="dto">An object containing the user's registration information. Cannot be null.</param>
+        /// <returns>A 201 Created result if registration is successful; otherwise, a 400 Bad Request result with an error
+        /// message if the registration details are invalid.</returns>
         [HttpPost("register")]
         public async Task<ActionResult> RegisterAsync(RegisterDto dto)
         {
-            //Input validation
-            if (string.IsNullOrWhiteSpace(dto.FirstName)) return BadRequest("First name is required.");
-            if (string.IsNullOrWhiteSpace(dto.LastName)) return BadRequest("Last name is required.");
-            if (!Regex.Matches(dto.Email, "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$").Any()) return BadRequest("Invalid email format.");
-            if (dto.Password.Length < 8) return BadRequest("Password must be at least 8 characters long.");
-            if (!IsPasswordSecure(dto.Password)) return BadRequest("Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character.");
-            if (dto.Birthday >= DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-18))) return BadRequest("You must be at least 18 years old to register.");
-            if (DbContext.Users.Any(u => u.Email == dto.Email)) return BadRequest("Email already in use.");
-
-            var user = new User
+            try
             {
-                FirstName = dto.FirstName,
-                LastName = dto.LastName,
-                Email = dto.Email.ToLower(),
-                Birthday = dto.Birthday,
-                HashedPassword = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Description = string.Empty
-            };
-
-            await DbContext.Users.AddAsync(user);
-            await DbContext.SaveChangesAsync();
-
-            return Ok(user);
+                await authService.RegisterUserAsync(dto);
+                return Created();
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         /// <summary>
-        /// Authenticates a user with the specified credentials and returns a JWT-based authentication response if
-        /// successful.
+        /// Verifies a user's email address using the provided validation data.
         /// </summary>
-        /// <param name="dto">The login credentials, including the user's email address and password.</param>
-        /// <returns>An <see cref="ActionResult{T}"/> containing an <see cref="AuthResponseDto"/> with authentication details if
-        /// the login is successful; otherwise, an unauthorized result if the credentials are invalid.</returns>
+        /// <param name="dto">An object containing the email verification data required to complete the verification process. Cannot be
+        /// null.</param>
+        /// <returns>An HTTP 200 OK result if the email is verified successfully; otherwise, an HTTP 400 Bad Request result with
+        /// an error message if the verification fails.</returns>
+        [HttpPost("verifyEmail")]
+        public async Task<ActionResult> VerifyEmailAsync(ValidateDto dto)
+        {
+            try
+            {
+                await authService.VerifyEmailAsync(dto);
+                return Ok("Email verified successfully.");
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Authenticates a user with the provided credentials and returns an authentication token if successful.
+        /// </summary>
+        /// <param name="dto">The login credentials and related information for the user attempting to authenticate. Cannot be null.</param>
+        /// <returns>An <see cref="ActionResult{T}"/> containing an <see cref="AuthResponseDto"/> with the authentication token
+        /// if the login is successful; otherwise, an unauthorized result with an error message.</returns>
         [HttpPost("login")]
         public async Task<ActionResult<AuthResponseDto>> LoginAsync(LoginDto dto)
         {
-            //Find user with email and include UserRoles for JWT claims
-            var user = await DbContext.Users
-                .Include(u => u.UserRoles)
-                .FirstOrDefaultAsync(u => u.Email == dto.Email.ToLower());
-
-            if (user == null)
-                return Unauthorized("Invalid email or password.");
-
-            //Verify password
-            if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.HashedPassword))
-                return Unauthorized("Invalid email or password.");
-
-            return Ok(await jwtService.CreateAuthResponseAsync(user));
+            try
+            {
+                var jwt = await authService.LoginAsync(dto);
+                return Ok(jwt);
+            }
+            catch (ArgumentException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
         }
 
         /// <summary>
-        /// Generates a new authentication response using a valid refresh token.
+        /// Generates a new authentication token pair using the provided refresh token.
         /// </summary>
-        /// <param name="dto">An object containing the refresh token to validate and use for generating a new authentication response.
+        /// <param name="dto">An object containing the refresh token and related information required to obtain new authentication tokens.
         /// Cannot be null.</param>
-        /// <returns>An <see cref="ActionResult{T}"/> containing an <see cref="AuthResponseDto"/> if the refresh token is valid;
-        /// otherwise, an unauthorized result if the token is invalid or expired.</returns>
+        /// <returns>An <see cref="ActionResult{T}"/> containing a new <see cref="AuthResponseDto"/> with refreshed
+        /// authentication tokens if the refresh token is valid; otherwise, an unauthorized response.</returns>
         [HttpPost("refresh")]
         public async Task<ActionResult<AuthResponseDto>> RefreshAsync(RefreshTokenDto dto)
         {
-            var user = await jwtService.ValidateRefreshTokenAsync(dto.Token);
-            if (user == null) return Unauthorized("Invalid or expired refresh token.");
-
-            return Ok(await jwtService.CreateAuthResponseAsync(user));
+            try
+            {
+                var jwt = await authService.RefreshAsync(dto);
+                return Ok(jwt);
+            }
+            catch (ArgumentException ex)
+            {
+                return Unauthorized(ex.Message);
+            }
         }
 
         /// <summary>
-        /// Updates the authenticated user's password after validating the current password and new password requirements.
+        /// Updates the signed-in user's password using the specified password information.
         /// </summary>
-        /// <remarks>The new password must be at least 8 characters long and meet complexity requirements including
-        /// uppercase, lowercase, digit, and special character. The user must be authenticated to access this endpoint.</remarks>
-        /// <param name="dto">An object containing the current password and the new password. Cannot be null.</param>
-        /// <returns>An HTTP 200 OK result if the password is successfully updated; otherwise, a Bad Request or Unauthorized
-        /// result with an error message describing the validation or authentication failure.</returns>
-        [Authorize]
-        [HttpPut("updatePassword")]
+        /// <remarks>This action requires the user to be authenticated. The password update will fail if
+        /// the provided current password is incorrect or if the new password does not meet the required
+        /// criteria.</remarks>
+        /// <param name="dto">An object containing the current and new password details required to update the user's password. Cannot be
+        /// null.</param>
+        /// <returns>An <see cref="ActionResult"/> indicating the result of the password update operation. Returns <see
+        /// cref="OkObjectResult"/> if the password is updated successfully; <see cref="UnauthorizedResult"/> if the
+        /// user is not authenticated; or <see cref="BadRequestObjectResult"/> if the input is invalid.</returns>
+        [HttpPut("updatePassword"), Authorize]
         public async Task<ActionResult> UpdatePasswordAsync(UpdatePasswordDto dto)
         {
-            var user = await GetSignedInUserAsync();
-            if (user == null) return Unauthorized("User not authenticated.");
-
-            // Validate current password
-            if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.HashedPassword))
-                return BadRequest("Current password is incorrect.");
-
-            // Validate new password
-            if (dto.NewPassword.Length < 8) return BadRequest("Password must be at least 8 characters long.");
-            if (!IsPasswordSecure(dto.NewPassword)) return BadRequest("Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character.");
-            
-            // Validate password confirmation
-            if (dto.NewPassword != dto.ConfirmNewPassword)
-                return BadRequest("New password and confirmation password do not match.");
-
-            // Update password
-            user.HashedPassword = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
-            user.UpdatedAt = DateTime.UtcNow;
-
-            DbContext.Users.Update(user);
-            await DbContext.SaveChangesAsync();
-
-            return Ok("Password updated successfully.");
+            try
+            {
+                var user = await GetSignedInUserAsync();
+                if (user == null) return Unauthorized("User not authenticated.");
+                await authService.UpdateUserPasswordAsync(user, dto);
+                return Ok("Password updated successfully.");
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         /// <summary>
-        /// Updates the signed-in user's profile description with the specified value.
+        /// Updates the signed-in user's description with the specified information.
         /// </summary>
-        /// <remarks>This action requires the user to be authenticated. If the provided description is
-        /// null or empty after trimming, the user's description will be cleared. Descriptions longer than 500
-        /// characters are not allowed.</remarks>
-        /// <param name="dto">An object containing the new description to set for the user's profile. The description must not exceed 500
-        /// characters.</param>
-        /// <returns>An <see cref="ActionResult"/> indicating the result of the operation. Returns <see cref="OkResult"/> if the
-        /// description was updated successfully; otherwise, returns an appropriate error result such as <see
-        /// cref="UnauthorizedResult"/> or <see cref="BadRequestObjectResult"/>.</returns>
+        /// <param name="dto">An object containing the new description details to apply to the user profile. Cannot be null.</param>
+        /// <returns>An <see cref="ActionResult"/> indicating the result of the update operation. Returns 200 OK if the update is
+        /// successful, 401 Unauthorized if the user is not authenticated, or 400 Bad Request if the input is invalid.</returns>
         [HttpPut("updateDescription"), Authorize]
         public async Task<ActionResult> UpdateDescriptionAsync(UpdateDescriptionDto dto)
         {
-            var user = await GetSignedInUserAsync();
-            if (user == null) return Unauthorized("User not authenticated.");
-
-            if (dto.Description != null)
+            try 
             {
-                dto.Description = dto.Description.Trim();
-
-                // Validate description
-                if (dto.Description.Length > 500)
-                    return BadRequest("Description cannot exceed 500 characters.");
-                if (string.IsNullOrEmpty(dto.Description)) dto.Description = null;
+                var user = await GetSignedInUserAsync();
+                if (user == null) return Unauthorized("User not authenticated.");
+                await authService.UpdateUserDescriptionAsync(user, dto);
+                return Ok("Description updated successfully.");
             }
-
-            // Update description
-            user.Description = dto.Description ?? string.Empty;
-            user.UpdatedAt = DateTime.UtcNow;
-
-            DbContext.Users.Update(user);
-            await DbContext.SaveChangesAsync();
-
-            return Ok("Description updated successfully.");
-        }
-
-        /// <summary>
-		/// Checks if the password is secure, using <see cref="Regex"/>.
-		/// </summary>
-		/// <param name="password"></param>
-		/// <returns><see cref="bool"/> of true, if the given password is secure.</returns>
-		private bool IsPasswordSecure(string password)
-        {
-            if (string.IsNullOrEmpty(password)) return false;
-
-            // Regex to check if the password meets the following criteria:
-            // ^               - Ensures the match starts at the beginning of the string.
-            // (?=.*[A-Z])     - Asserts that there is at least one uppercase letter in the string.
-            // (?=.*[a-z])     - Asserts that there is at least one lowercase letter in the string.
-            // (?=.*\d)        - Asserts that there is at least one digit (number) in the string.
-            // (?=.*[\W_])     - Asserts that there is at least one special character (non-word character or underscore).
-            // [^\s]{8,}       - Ensures the string is at least 8 characters long and does not contain any whitespace.
-            // $               - Ensures the match ends at the end of the string.
-            var regex = new Regex(@"^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[\W_])[^\s]{8,}$");
-            return regex.IsMatch(password);
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         /// <summary>
         /// Retrieves information about the currently authenticated user.
         /// </summary>
-        /// <remarks>This endpoint requires authentication. The returned profile includes basic user details such as
-        /// ID, name, birthday, and email address.</remarks>
-        /// <returns>An <see cref="ActionResult{MeDto}"/> containing the user's profile information if authenticated; otherwise, an
-        /// unauthorized response.</returns>
+        /// <returns>An <see cref="ActionResult{MeResponseDto}"/> containing the current user's profile information if the user
+        /// is authenticated; otherwise, a 500 Internal Server Error result if the user cannot be retrieved.</returns>
         [HttpGet("me"), Authorize]
         public async Task<ActionResult<MeResponseDto>> GetMeAsync()
         {
@@ -210,16 +174,7 @@ namespace Wavelength.Controllers
             if (user == null) return StatusCode(500);
 
             //Map to MeDTO
-            var meDto = new MeResponseDto
-            {
-                Id = user.Id,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                Birthday = user.Birthday,
-                Email = user.Email,
-                Description = user.Description,
-                Tags = user.ValueTags.Select(t => t.ToString()).ToList()
-            };
+            var meDto = MeResponseDto.FromUser(user);
 
             return Ok(meDto);
         }

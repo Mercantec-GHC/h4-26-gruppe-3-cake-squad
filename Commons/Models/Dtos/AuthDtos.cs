@@ -9,6 +9,11 @@
         public DateOnly Birthday { get; set; }
     }
 
+    public class ValidateDto
+    {
+        public string Code { get; set; }
+    }
+
     public class LoginDto
     {
         public string Email { get; set; }

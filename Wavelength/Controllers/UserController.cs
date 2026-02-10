@@ -36,29 +36,23 @@ namespace Wavelength.Controllers
 				FirstName = user.FirstName,
 				LastName = user.LastName,
 				Description = user.Description,
-                Tags = user.ValueTags.Select(t => t.ToString()).ToList()
+                Tags = user.ValueTags.Select(t => InterestData.Labels[t]).ToList()
             };
 
 			return Ok(userDto);
 		}
 
 		/// <summary>
-		/// Retrieves a list of all available tag names defined in the TagsEnum.
+		/// Retrieves all available tags as key-value pairs.
 		/// </summary>
-		/// <remarks>This method is intended for clients that need to enumerate all possible tags supported by the
-		/// application. The returned tag names correspond to the values of the TagsEnum and can be used for filtering,
-		/// selection, or display purposes.</remarks>
-		/// <returns>An ActionResult containing a list of strings representing all tag names. The list will be empty if no tags are
-		/// defined.</returns>
+		/// <remarks>This endpoint requires authentication. Use this method to obtain the complete set of tags for use
+		/// in filtering, display, or selection scenarios.</remarks>
+		/// <returns>A dictionary containing all tags, where each key is the tag identifier and each value is the tag label. The
+		/// dictionary will be empty if no tags are available.</returns>
 		[HttpPost("AllTags"), Authorize]
-		public ActionResult<List<string>> GetAllTags()
+		public ActionResult<Dictionary<string, string>> GetAllTags()
 		{
-			// Get all tag names from the TagsEnum and return them as a list of strings
-			var tags = Enum.GetValues<TagsEnum>()
-				.Select(t => t.ToString())
-				.ToList();
-
-			return Ok(tags);
+			return Ok(InterestData.Labels);
 		}
 
 		/// <summary>
@@ -78,10 +72,10 @@ namespace Wavelength.Controllers
 			if (user == null) return StatusCode(500);
 
 			// Validate and convert string tags to enum values
-			List<TagsEnum> valueTags = tags
+			List<Interest> valueTags = tags
 				.Select(s =>
 				{
-					bool ok = Enum.TryParse<TagsEnum>(s, true, out var value);
+					bool ok = Enum.TryParse<Interest>(s, true, out var value);
 					return (ok, value);
 				})
 				.Where(x => x.ok)
@@ -118,7 +112,7 @@ namespace Wavelength.Controllers
             if (user == null) return NotFound("User not found.");
 
             var tags = user.ValueTags
-                .Select(t => t.ToString())
+                .Select(t => InterestData.Labels[t])
                 .ToList();
 
             return Ok(tags);
@@ -165,7 +159,7 @@ namespace Wavelength.Controllers
 					.Select(p => p.Id)
 					.ToList(),
                 Tags = userResult.ValueTags
-					.Select(t => t.ToString()).ToList()
+					.Select(t => InterestData.Labels[t]).ToList()
 			});
 		}
     }
