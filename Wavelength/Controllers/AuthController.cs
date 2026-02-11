@@ -174,7 +174,7 @@ namespace Wavelength.Controllers
         [HttpPut("updateDescription"), Authorize]
         public async Task<ActionResult> UpdateDescriptionAsync(UpdateDescriptionDto dto)
         {
-            try 
+            try
             {
                 var user = await GetSignedInUserAsync();
                 if (user == null) return Unauthorized("User not authenticated.");
@@ -205,6 +205,30 @@ namespace Wavelength.Controllers
             return Ok(meDto);
         }
 
-
+        /// <summary>
+        /// Deletes the signed-in user's account using the provided account deletion details.
+        /// </summary>
+        /// <remarks>This method requires the user to be authenticated. The account deletion is performed
+        /// asynchronously. If the provided account deletion details are invalid, a BadRequest response is
+        /// returned.</remarks>
+        /// <param name="dto">An object containing information required to delete the account. Cannot be null; must include valid account
+        /// deletion data as expected by the service.</param>
+        /// <returns>An ActionResult indicating the outcome of the account deletion operation. Returns Ok if the account is
+        /// deleted successfully; BadRequest if the request is invalid; Unauthorized if the user is not authenticated.</returns>
+        [HttpDelete("deleteAccount"), Authorize]
+        public async Task<ActionResult> DeleteAccountAsync(DeleteAccountDto dto)
+        {
+            try
+            {
+                var user = await GetSignedInUserAsync();
+                if (user == null) return Unauthorized("User not authenticated.");
+                await authService.DeleteUserAccountAsync(user, dto);
+                return Ok("Account deleted successfully.");
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
     }
 }

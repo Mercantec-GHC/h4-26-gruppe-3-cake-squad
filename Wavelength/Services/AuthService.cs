@@ -268,11 +268,24 @@ namespace Wavelength.Services
             await dbContext.SaveChangesAsync();
         }
 
-        public async Task DeleteUserAsync(User user, DeleteAccountDto dto)
+        /// <summary>
+        /// Deletes the specified user account from the database after verifying the current password.
+        /// </summary>
+        /// <remarks>This operation permanently removes the user from the database. Consider implementing
+        /// a soft delete if account recovery or auditing is required.</remarks>
+        /// <param name="user">The user account to be deleted. Must represent a valid, existing user.</param>
+        /// <param name="dto">An object containing account deletion details, including the current password required for verification.</param>
+        /// <returns>A task that represents the asynchronous delete operation.</returns>
+        /// <exception cref="ArgumentException">Thrown if the current password provided in <paramref name="dto"/> does not match the user's password.</exception>
+        public async Task DeleteUserAccountAsync(User user, DeleteAccountDto dto)
         {
             // Validate current password
             if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.HashedPassword))
                 throw new ArgumentException("Current password is incorrect.");
+
+            // Todo: Consider implementing a soft delete by adding an IsDeleted flag,
+            // to the User entity instead of permanently removing the user from the database.
+            // This allows for account recovery and auditing.
 
             dbContext.Users.Remove(user);
             await dbContext.SaveChangesAsync();
