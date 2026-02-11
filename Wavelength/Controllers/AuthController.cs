@@ -113,6 +113,32 @@ namespace Wavelength.Controllers
         }
 
         /// <summary>
+        /// Updates the signed-in user's email address using the provided data transfer object.
+        /// </summary>
+        /// <remarks>This method requires the caller to be authenticated. The email update operation may
+        /// fail if the provided email address is invalid or already in use.</remarks>
+        /// <param name="dto">An object containing the new email address and any required information for the update operation. Cannot be
+        /// null.</param>
+        /// <returns>An <see cref="ActionResult"/> indicating the outcome of the operation. Returns <see langword="Ok"/> if the
+        /// email is updated successfully; <see langword="Unauthorized"/> if the user is not authenticated; or <see
+        /// langword="BadRequest"/> if the input is invalid.</returns>
+        [HttpPut("updateEmail"), Authorize]
+        public async Task<ActionResult> UpdateEmailAsync(UpdateEmailDto dto)
+        {
+            try
+            {
+                var user = await GetSignedInUserAsync();
+                if (user == null) return Unauthorized("User not authenticated.");
+                await authService.UpdateUserEmailAsync(user, dto);
+                return Ok("Email updated successfully.");
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
         /// Updates the signed-in user's password using the specified password information.
         /// </summary>
         /// <remarks>This action requires the user to be authenticated. The password update will fail if
@@ -178,5 +204,7 @@ namespace Wavelength.Controllers
 
             return Ok(meDto);
         }
+
+
     }
 }
