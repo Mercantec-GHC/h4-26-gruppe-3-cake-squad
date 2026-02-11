@@ -5,7 +5,7 @@
 		public static IServiceCollection AddCorsPolicy(this IServiceCollection service, IConfiguration configuration)
 		{
             // Load allowed origins from configuration
-            var origins = configuration["Cors_AllowedOrigins"]
+            var origins = configuration["Cors:AllowedOrigins"]
 				?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
 			if (origins == null || origins.Length == 0)
