@@ -69,7 +69,6 @@ namespace Wavelength.Services
                     client.Connect(options.Host, options.Port, options.EnableSsl);
                     client.Authenticate(options.Username, options.Password);
                     client.Send(email);
-
                 }
                 catch (Exception ex)
                 {

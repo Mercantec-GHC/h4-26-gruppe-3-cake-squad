@@ -32,5 +32,17 @@ namespace Wavelength.Controllers
                 return NotFound(ex.Message);
             }
         }
+
+        [HttpPost("SendTestEmail")]
+        public ActionResult SendTestEmail(string to)
+        {
+            var body = mailService.RenderTemplate("TestMail", new Dictionary<string, string>
+            {
+                { "Name", "Jane Doe" },
+                { "Date", DateTime.Now.ToString("MMMM dd, yyyy") }
+            });
+            mailService.SendEmail(to, "Test Email from Wavelength", body);
+            return Ok($"Test email sent to {to}");
+        }
     }
 }
