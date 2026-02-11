@@ -13,7 +13,7 @@ namespace Wavelength.Services
     {
         public string Host { get; set; } = string.Empty;
         public int Port { get; set; } = 587;
-        public string Name { get; set; } = string.Empty;
+        public string From { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
         public string Username { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
@@ -57,7 +57,7 @@ namespace Wavelength.Services
         public void SendEmail(string to, string subject, TextPart body)
         {
             var email = new MimeMessage();
-            email.From.Add(new MailboxAddress(options.Name, options.Address));
+            email.From.Add(new MailboxAddress(options.From, options.Address));
             email.To.Add(new MailboxAddress("", to));
             email.Subject = subject;
             email.Body = body;
@@ -69,7 +69,6 @@ namespace Wavelength.Services
                     client.Connect(options.Host, options.Port, options.EnableSsl);
                     client.Authenticate(options.Username, options.Password);
                     client.Send(email);
-
                 }
                 catch (Exception ex)
                 {

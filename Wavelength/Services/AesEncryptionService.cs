@@ -23,12 +23,13 @@ namespace Wavelength.Services
 		/// <exception cref="ArgumentNullException">Thrown if the 'EncryptionKey' configuration value is not set.</exception>
 		public AesEncryptionService(IConfiguration config)
 		{
-			if (config["EncryptionKey"] is null)
+			var key = config["Aes:Key"];
+			if (key is null)
 				throw new ArgumentNullException("EncryptionKey", "Encryption key is not configured.");
 
 			// Load the encryption key from configuration (Base64 encoded string)
 			// Convert it into a byte array, since AES requires raw bytes
-			_key = Convert.FromBase64String(config["EncryptionKey"]!);
+			_key = Convert.FromBase64String(key);
 		}
 
 		/// <summary>
