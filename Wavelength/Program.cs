@@ -35,6 +35,7 @@ namespace Wavelength
             builder.Services.AddScoped<MailService>();
 
 			builder.Services.AddScoped<AuthService>();
+			builder.Services.AddScoped<NotificationService>();
 
 			// Register AesEncryptionService.
 			builder.Services.AddSingleton<AesEncryptionService>();
