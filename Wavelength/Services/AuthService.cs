@@ -22,19 +22,22 @@ namespace Wavelength.Services
         private readonly AppDbContext dbContext;
         private readonly JwtService jwtService;
         private readonly EmailVaidationRepository emailVaidation;
+        private readonly MailService mailService;
 
         /// <summary>
-        /// Initializes a new instance of the AuthService class with the specified database context, JWT service, and
-        /// email validation repository.
+        /// Initializes a new instance of the AuthService class with the specified dependencies required for
+        /// authentication and email validation operations.
         /// </summary>
-        /// <param name="dbContext">The database context used for accessing and managing authentication-related data.</param>
-        /// <param name="jwtService">The service used for generating and validating JSON Web Tokens (JWTs).</param>
-        /// <param name="emailVaidation">The repository used for handling email validation operations.</param>
-        public AuthService(AppDbContext dbContext, JwtService jwtService, EmailVaidationRepository emailVaidation)
+        /// <param name="dbContext">The database context used for accessing and managing user data.</param>
+        /// <param name="jwtService">The service used to generate and validate JSON Web Tokens (JWT) for authentication.</param>
+        /// <param name="emailVaidation">The repository used to manage email validation processes.</param>
+        /// <param name="mailService">The service used to send email messages for authentication and validation purposes.</param>
+        public AuthService(AppDbContext dbContext, JwtService jwtService, EmailVaidationRepository emailVaidation, MailService mailService)
         {
             this.dbContext = dbContext;
             this.jwtService = jwtService;
             this.emailVaidation = emailVaidation;
+            this.mailService = mailService;
         }
 
         /// <summary>
@@ -86,7 +89,16 @@ namespace Wavelength.Services
             await dbContext.SaveChangesAsync();
 
             // Create email validation entry
-            await emailVaidation.CreateEmailValidationAsync(newUser.Id);
+            var validation = await emailVaidation.CreateEmailValidationAsync(newUser.Id);
+
+            // Send validation email
+            var body = mailService.RenderTemplate("RegistrationMail", new Dictionary<string, string>
+            {
+                { "Name", $"{newUser.FirstName} {newUser.LastName}" },
+                { "Date", DateTime.Now.ToString("MMMM dd, yyyy") },
+                { "Code", validation.ValidationCode }
+            });
+            mailService.SendEmail(newUser.Email, "Velkommen til Wavelength", body);
         }
 
         /// <summary>
