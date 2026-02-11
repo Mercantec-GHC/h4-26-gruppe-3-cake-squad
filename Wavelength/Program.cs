@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Wavelength.Data;
 using Wavelength.Services;
 
 namespace Wavelength
@@ -10,8 +9,8 @@ namespace Wavelength
 		{
 			var builder = WebApplication.CreateBuilder(args);
 
-			// Add services to the container.
-			builder.Services.AddControllers();
+            // Add controller services
+            builder.Services.AddControllers();
 
 			// Add OpenAPI/Swagger support
 			builder.Services.AddOpenApi();
@@ -22,15 +21,20 @@ namespace Wavelength
 			// Configure CORS policies
 			builder.Services.AddCorsPolicy(builder.Configuration);
 
-			// Configure DbContext with PostgreSQL
-			builder.Services.AddDbContext<AppDbContext>(
-				options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+            // Add database access services, including DbContext and repositories
+            builder.Services.AddDatabaseAccess(builder.Configuration);
 
-			// Add swagger gen.
-			builder.Services.AddSwaggerGenWithAuth();
+            // Add swagger gen.
+            builder.Services.AddSwaggerGenWithAuth();
 
-			// Register JwtService
-			builder.Services.AddScoped<JwtService>();
+            // Add jwt service
+            builder.Services.AddScoped<JwtService>();
+
+            // Add email services
+            builder.Services.AddSingleton<IEmailTemplateLoader, EmailTemplateLoader>();
+            builder.Services.AddScoped<MailService>();
+
+			builder.Services.AddScoped<AuthService>();
 
 			// Register AesEncryptionService.
 			builder.Services.AddSingleton<AesEncryptionService>();
