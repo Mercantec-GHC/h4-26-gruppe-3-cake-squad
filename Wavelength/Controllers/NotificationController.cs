@@ -1,5 +1,4 @@
-﻿using Commons.Models.Database;
-using Commons.Models.Dtos;
+﻿using Commons.Models.Dtos;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Wavelength.Data;
