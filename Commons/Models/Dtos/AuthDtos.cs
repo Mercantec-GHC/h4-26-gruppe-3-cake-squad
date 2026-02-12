@@ -49,6 +49,12 @@
         public string? Description { get; set; }
     }
 
+	public class OauthDto
+	{
+		public string Provider { get; set; }
+        public string Code { get; set; }
+	}
+
     public class DeleteAccountDto
     {
         public string CurrentPassword { get; set; }

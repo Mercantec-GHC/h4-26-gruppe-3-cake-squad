@@ -1,9 +1,10 @@
-﻿using Commons.Models.Database;
-using Commons.Models.Dtos;
+﻿using Commons.Models.Dtos;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Wavelength.Data;
 using Commons.Enums;
+using Microsoft.AspNetCore.Authorization;
+using Wavelength.Services;
 
 namespace Wavelength.Controllers
 {
@@ -11,34 +12,54 @@ namespace Wavelength.Controllers
 	[Route("[controller]")]
 	public class NotificationController : BaseController
 	{
-		public NotificationController(AppDbContext context) : base(context) { }
-
-		[HttpPost]
-		public async Task<ActionResult> CreateNotificationAsync(NotificationRequestDto request)
+		private readonly NotificationService notificationService;
+		public NotificationController(AppDbContext context, NotificationService notificationService) : base(context) 
 		{
-			if (request == null) return BadRequest("Request body can not be empty.");
-			if (string.IsNullOrWhiteSpace(request.SenderId)) return BadRequest("Sender id can not be empty.");
-			if (string.IsNullOrWhiteSpace(request.TargetId)) return BadRequest("Target id can not be empty.");
-			if (string.IsNullOrWhiteSpace(request.Content)) return BadRequest("Content can not be empty.");
+			this.notificationService = notificationService;
+		}
 
-			var sender = await GetSignedInUserAsync(q => q.Include(u => u.UserVisibilities));
-			if (sender == null) return StatusCode(500);
-
-			if (!await DbContext.Users.AnyAsync(u => u.Id == request.TargetId)) return BadRequest("Target id does not exist.");
-
-			var notification = new Notification
+		[HttpPost, Authorize(Roles = "Admin")]
+		public async Task<ActionResult> CreateNotificationAsync(AdminNotificationRequestDto request)
+		{
+			try 
 			{
-				SenderId = sender.Id,
-				TargetId = request.TargetId,
-				ObjectId = null,
-				Content = request.Content,
-				Type = NotificationTypeEnum.System
-			};
+				var sender = await GetSignedInUserAsync(q => q.Include(u => u.UserVisibilities));
+				if (sender == null) return StatusCode(500);
+				if (sender.Roles.Contains(RoleEnum.Admin) == false) return Unauthorized();
 
-			await DbContext.Notifications.AddAsync(notification);
-			await DbContext.SaveChangesAsync();
+				var notification = new NotificationRequestDto
+				{
+					SenderId = sender.Id,
+					TargetIds = request.TargetIds,
+					Content = request.Content
+				};
 
-			return Ok();
+				await notificationService.AdminCreateNotificationAsync(notification);
+				return Ok();
+			}
+			catch (Exception ex)
+			{
+				return BadRequest($"Failed to create notification: {ex.Message}");
+			}
+		}
+
+		[HttpGet, Authorize]
+		public async Task<ActionResult<List<NotificationResponseDto>>> GetNotificationsAsync()
+		{
+			try
+			{
+				var user = await GetSignedInUserAsync();
+				if (user == null) return StatusCode(500);
+
+				var notifications = await notificationService.GetNotificationsAsync(user.Id);
+				if (notifications == null || notifications.Count == 0) return BadRequest($"No notifications found for this user: {user.Id}");
+
+				return Ok(notifications);
+			}
+			catch (Exception ex)
+			{
+				return BadRequest($"Failed to fetch notifications: {ex.Message}");
+			}
 		}
 	}
 }

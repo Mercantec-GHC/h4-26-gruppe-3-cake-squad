@@ -22,16 +22,22 @@ namespace Wavelength.Controllers
 	public class ChatController : BaseController
 	{
 		private readonly AesEncryptionService aesService;
+		private readonly NotificationService notificationService;
 
 		/// <summary>
-		/// Initializes a new instance of the ChatController class with the specified database context and AES encryption
-		/// service.
+		/// Initializes a new instance of the ChatController class with the specified database context, encryption service,
+		/// and notification service.
 		/// </summary>
-		/// <param name="dbContext">The database context used for accessing chat-related data.</param>
-		/// <param name="aesService">The AES encryption service used to encrypt and decrypt chat messages.</param>
-		public ChatController(AppDbContext dbContext, AesEncryptionService aesService) : base(dbContext)
+		/// <remarks>Use this constructor to provide required dependencies for chat operations, including data access,
+		/// message encryption, and user notifications. All parameters must be valid and non-null to ensure proper controller
+		/// functionality.</remarks>
+		/// <param name="dbContext">The database context used for accessing and managing chat-related data.</param>
+		/// <param name="aesService">The AES encryption service used to secure chat messages and sensitive information.</param>
+		/// <param name="notificationService">The notification service responsible for sending chat notifications to users.</param>
+		public ChatController(AppDbContext dbContext, AesEncryptionService aesService, NotificationService notificationService) : base(dbContext)
 		{
 			this.aesService = aesService;
+			this.notificationService = notificationService;
 		}
 
 		#region Chat Room Management
@@ -350,10 +356,28 @@ namespace Wavelength.Controllers
 				SenderId = sender.Id,
 				MessageContent = aesService.Encrypt(dto.MessageContent)
 			};
+			
 			await DbContext.ChatMessages.AddAsync(message);
 			await DbContext.SaveChangesAsync();
 
-			return Ok("Message was created.");
+			// Send notifications to all participants except the sender.
+			var notificationRequest = new MessageNotificationRequestDto
+			{
+				SenderId = sender.Id,
+				ChatRoomId = dto.ChatRoomId,
+				ObjectId = message.Id.ToString(),
+				Content = $"New message in chat room '{chatRoom.Name}' from {sender.FirstName} {sender.LastName}."
+			};
+
+			try
+			{
+				await notificationService.CreateMessageNotificationAsync(notificationRequest);
+				return Ok("Message was created.");
+			}
+			catch (Exception ex)
+			{
+				return BadRequest($"Message was created but failed to send notifications: {ex.Message}");
+			}
 		}
 
 		/// <summary>

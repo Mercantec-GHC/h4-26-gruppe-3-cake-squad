@@ -192,7 +192,7 @@
 
             <div class="divider">or</div>
 
-            <button class="btn btn-secondary btn-google" type="button" id="btnGoogle" disabled>
+            <button onClick="googleSignin()" class="btn btn-secondary btn-google" type="button" id="btnGoogle">
                 <img src="https://www.gstatic.com/images/branding/product/1x/gsa_64dp.png" alt="Google logo" />
                 <span>Continue with Google</span>
             </button>
@@ -208,14 +208,14 @@
             const email = document.getElementById("email");
             const password = document.getElementById("password");
             const btnLogin = document.getElementById("btnLogin");
-            //const btnGoogle = document.getElementById("btnGoogle");
+            const btnGoogle = document.getElementById("btnGoogle");
             const spinner = document.getElementById("spinner");
             const loginText = document.getElementById("loginText");
 
             email.disabled = true;
             password.disabled = true;
             btnLogin.disabled = true;
-            //btnGoogle.disabled = true;
+            btnGoogle.disabled = true;
             spinner.classList.remove("d-none");
             loginText.innerText = "logging in";
 
@@ -258,7 +258,7 @@
             email.disabled = false;
             password.disabled = false;
             btnLogin.disabled = false;
-            //btnGoogle.disabled = false;
+            btnGoogle.disabled = false;
             spinner.classList.add("d-none");
             loginText.innerText = "Log in";
         });
@@ -269,6 +269,15 @@
                 emailInput.focus();
             }
         });
+
+        function googleSignin() {
+            fetch("/oauth/google.json")
+                .then(response => response.json())
+                .then(data => {
+                    window.location.href = `https://accounts.google.com/o/oauth2/auth?client_id=${data.ClientId}&redirect_uri=${data.ReturnUri}&response_type=code&scope=openid%20email%20profile%20https://www.googleapis.com/auth/user.birthday.read`
+                })
+                .catch(error => console.error("Error:", error));
+        }
     </script>
 </body>
 </html>

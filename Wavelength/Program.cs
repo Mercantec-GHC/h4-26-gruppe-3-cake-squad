@@ -35,6 +35,7 @@ namespace Wavelength
             builder.Services.AddScoped<MailService>();
 
 			builder.Services.AddScoped<AuthService>();
+			builder.Services.AddScoped<NotificationService>();
 
 			// Register AesEncryptionService.
 			builder.Services.AddSingleton<AesEncryptionService>();
@@ -78,6 +79,17 @@ namespace Wavelength
 
 			// Add health checks endpoint
 			app.MapHealthChecks("/health");
+
+			app.Map("/oauth/google.json", appBuilder =>
+			{
+				appBuilder.Run(async conetxt =>
+				{
+					var jsonObject = new { ClientId = builder.Configuration["Oauth:Google:ClientId"], ReturnUri = builder.Configuration["Oauth:Google:RedirectUri"] };
+					var jsonString = System.Text.Json.JsonSerializer.Serialize(jsonObject);
+					conetxt.Response.ContentType = "application/json";
+					await conetxt.Response.WriteAsync(jsonString);
+				});
+			});
 
 			app.Run();
 		}
