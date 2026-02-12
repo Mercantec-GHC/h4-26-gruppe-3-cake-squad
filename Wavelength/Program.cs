@@ -34,8 +34,9 @@ namespace Wavelength
             builder.Services.AddSingleton<IEmailTemplateLoader, EmailTemplateLoader>();
             builder.Services.AddScoped<MailService>();
 
-			builder.Services.AddScoped<AuthService>();
-			builder.Services.AddScoped<NotificationService>();
+            builder.Services.AddScoped<AuthService>();
+            builder.Services.AddScoped<OauthService>();
+            builder.Services.AddScoped<NotificationService>();
 
 			// Register AesEncryptionService.
 			builder.Services.AddSingleton<AesEncryptionService>();
