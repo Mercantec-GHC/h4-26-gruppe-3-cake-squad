@@ -1,8 +1,8 @@
 ﻿using Commons.Models.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Wavelength.Data;
 using Wavelength.Services;
-using Microsoft.AspNetCore.Authorization;
 
 namespace Wavelength.Controllers
 {
@@ -18,16 +18,19 @@ namespace Wavelength.Controllers
     public class AuthController : BaseController
     {
         private readonly AuthService authService;
+        private readonly OauthService oauthService;
 
         /// <summary>
-        /// Initializes a new instance of the AuthController class with the specified database context and
-        /// authentication service.
+        /// Initializes a new instance of the AuthController class with the specified database context, authentication
+        /// service, and OAuth service.
         /// </summary>
-        /// <param name="dbContext">The database context used to access application data.</param>
-        /// <param name="authService">The authentication service used to handle user authentication operations.</param>
-        public AuthController(AppDbContext dbContext, AuthService authService) : base(dbContext)
+        /// <param name="dbContext">The database context used for accessing application data.</param>
+        /// <param name="authService">The authentication service responsible for handling user authentication operations.</param>
+        /// <param name="oauthService">The OAuth service used for managing OAuth-based authentication and authorization.</param>
+        public AuthController(AppDbContext dbContext, AuthService authService, OauthService oauthService) : base(dbContext)
         {
             this.authService = authService;
+            this.oauthService = oauthService;
         }
 
         /// <summary>
@@ -113,6 +116,32 @@ namespace Wavelength.Controllers
         }
 
         /// <summary>
+        /// Updates the signed-in user's email address using the provided data transfer object.
+        /// </summary>
+        /// <remarks>This method requires the caller to be authenticated. The email update operation may
+        /// fail if the provided email address is invalid or already in use.</remarks>
+        /// <param name="dto">An object containing the new email address and any required information for the update operation. Cannot be
+        /// null.</param>
+        /// <returns>An <see cref="ActionResult"/> indicating the outcome of the operation. Returns <see langword="Ok"/> if the
+        /// email is updated successfully; <see langword="Unauthorized"/> if the user is not authenticated; or <see
+        /// langword="BadRequest"/> if the input is invalid.</returns>
+        [HttpPut("updateEmail"), Authorize]
+        public async Task<ActionResult> UpdateEmailAsync(UpdateEmailDto dto)
+        {
+            try
+            {
+                var user = await GetSignedInUserAsync();
+                if (user == null) return Unauthorized("User not authenticated.");
+                await authService.UpdateUserEmailAsync(user, dto);
+                return Ok("Email updated successfully.");
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
         /// Updates the signed-in user's password using the specified password information.
         /// </summary>
         /// <remarks>This action requires the user to be authenticated. The password update will fail if
@@ -148,7 +177,7 @@ namespace Wavelength.Controllers
         [HttpPut("updateDescription"), Authorize]
         public async Task<ActionResult> UpdateDescriptionAsync(UpdateDescriptionDto dto)
         {
-            try 
+            try
             {
                 var user = await GetSignedInUserAsync();
                 if (user == null) return Unauthorized("User not authenticated.");
@@ -177,6 +206,57 @@ namespace Wavelength.Controllers
             var meDto = MeResponseDto.FromUser(user);
 
             return Ok(meDto);
+        }
+
+        /// <summary>
+        /// Deletes the signed-in user's account using the provided account deletion details.
+        /// </summary>
+        /// <remarks>This method requires the user to be authenticated. The account deletion is performed
+        /// asynchronously. If the provided account deletion details are invalid, a BadRequest response is
+        /// returned.</remarks>
+        /// <param name="dto">An object containing information required to delete the account. Cannot be null; must include valid account
+        /// deletion data as expected by the service.</param>
+        /// <returns>An ActionResult indicating the outcome of the account deletion operation. Returns Ok if the account is
+        /// deleted successfully; BadRequest if the request is invalid; Unauthorized if the user is not authenticated.</returns>
+        [HttpDelete("deleteAccount"), Authorize]
+        public async Task<ActionResult> DeleteAccountAsync(DeleteAccountDto dto)
+        {
+            try
+            {
+                var user = await GetSignedInUserAsync();
+                if (user == null) return Unauthorized("User not authenticated.");
+                await authService.DeleteUserAccountAsync(user, dto);
+                return Ok("Account deleted successfully.");
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Handles the callback from Google's OAuth authentication flow and returns an authentication response for the
+        /// user.
+        /// </summary>
+        /// <remarks>This endpoint is intended to be called by Google's OAuth redirect after user
+        /// authorization. The returned authentication response typically includes a JWT token and user information. If
+        /// the provided authorization code is invalid or missing, a bad request is returned.</remarks>
+        /// <param name="request">The OAuth callback data received from Google, containing the authorization code required to complete
+        /// authentication. Cannot be null.</param>
+        /// <returns>An <see cref="ActionResult{AuthResponseDto}"/> containing the authentication response if the callback is
+        /// valid; otherwise, a bad request result with an error message.</returns>
+        [HttpPost("google/callback")]
+        public async Task<ActionResult<AuthResponseDto>> GoogleCallback(OauthWebDto request)
+        {
+            try
+            {
+                var jwt = await oauthService.HandleGoogleCallback(request.Code);
+                return Ok(jwt);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
     }
 }

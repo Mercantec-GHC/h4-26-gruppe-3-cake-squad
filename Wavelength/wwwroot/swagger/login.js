@@ -60,12 +60,24 @@
                 window.ui.preauthorizeApiKey("Bearer", token);
                 console.log("JWT token successfully applied to Swagger:", token);
             }
-            
+
             if (loginWindow && !loginWindow.closed) {
                 loginWindow.close();
                 console.log("Login window closed");
             }
             loginWindow = null;
+        }
+        else if (event.data && event.data.type === "google-callback") {
+            fetch("/oauth/google/callback", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ code: paramCode })
+            })
+                .then(r => r.json())
+                .then(user => {
+                    console.log("User info:", user);
+                    // Here you can store your own JWT, redirect, etc.
+                });
         }
     });
 

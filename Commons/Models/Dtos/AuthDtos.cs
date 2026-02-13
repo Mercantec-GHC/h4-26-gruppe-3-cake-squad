@@ -32,6 +32,11 @@
         public string Token { get; set; }
     }
 
+    public class UpdateEmailDto
+    {
+        public string Email { get; set; }
+    }
+
     public class UpdatePasswordDto
     {
         public string CurrentPassword { get; set; }
@@ -42,5 +47,10 @@
     public class UpdateDescriptionDto
     {
         public string? Description { get; set; }
+    }
+
+    public class DeleteAccountDto
+    {
+        public string CurrentPassword { get; set; }
     }
 }

@@ -83,7 +83,9 @@ namespace Wavelength.Repositories
             validation.User.IsEmailVerified = true;
 
             // If the code is valid, remove it from the database
-            dbContext.EmailValidations.Remove(validation);
+            var validations = await dbContext.EmailValidations.Where(ev => ev.UserId == validation.UserId).ToListAsync();
+            dbContext.EmailValidations.RemoveRange(validations);
+
             await dbContext.SaveChangesAsync();
 
             return true;
