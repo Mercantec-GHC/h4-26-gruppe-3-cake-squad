@@ -21,6 +21,9 @@ services:
       - Smtp__Username=${SMTP_USERNAME}
       - Smtp__Password=${SMTP_PASSWORD} 
       - Smtp__EnableSsl=${SMTP_ENABLE_SSL}
+      - OAuth__Google__ClientId=${OAUTH_GOOGLE_CLIENT_ID}
+      - OAuth__Google__ClientSecret=${OAUTH_GOOGLE_CLIENT_SECRET}
+      - OAuth__Google__RedirectUri=${OAUTH_GOOGLE_REDIRECT_URI}
     ports:
       - "${HTTP_PORT}:80"
     restart: unless-stopped
