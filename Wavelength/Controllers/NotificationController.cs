@@ -61,5 +61,22 @@ namespace Wavelength.Controllers
 				return BadRequest($"Failed to fetch notifications: {ex.Message}");
 			}
 		}
+
+		[HttpGet("Count"), Authorize]
+		public async Task<ActionResult<int>> GetNotificationCount()
+		{
+			try
+			{
+				var user = await GetSignedInUserAsync();
+				if (user == null) return StatusCode(500);
+
+				var count = await notificationService.GetNotificationCountAsync(user.Id);
+				return Ok(count);
+			}
+			catch (Exception ex) 
+			{
+				return BadRequest($"Failed to fetch unread notification count: {ex.Message}");
+			}
+		}
 	}
 }

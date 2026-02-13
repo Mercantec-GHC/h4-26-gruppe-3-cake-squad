@@ -106,5 +106,17 @@ namespace Wavelength.Services
 			
 			return notifications;
 		}
+
+		public async Task<int> GetNotificationCountAsync(string userId)
+		{
+			if (string.IsNullOrWhiteSpace(userId)) throw new ArgumentException("User id can not be empty.", nameof(userId));
+
+			var count = await dbContext.Notifications
+				.Where(n => n.TargetId == userId)
+				.CountAsync();
+			if (count == 0) throw new ArgumentException("No notifications found for the user.", nameof(userId));
+
+			return count;
+		}
 	}
 }
