@@ -23,6 +23,7 @@ namespace Wavelength.Controllers
 	{
 		private readonly AesEncryptionService aesService;
 		private readonly NotificationService notificationService;
+		private readonly ChatService chatService;
 
 		/// <summary>
 		/// Initializes a new instance of the ChatController class with the specified database context, encryption service,
@@ -34,108 +35,65 @@ namespace Wavelength.Controllers
 		/// <param name="dbContext">The database context used for accessing and managing chat-related data.</param>
 		/// <param name="aesService">The AES encryption service used to secure chat messages and sensitive information.</param>
 		/// <param name="notificationService">The notification service responsible for sending chat notifications to users.</param>
-		public ChatController(AppDbContext dbContext, AesEncryptionService aesService, NotificationService notificationService) : base(dbContext)
+		public ChatController(AppDbContext dbContext, AesEncryptionService aesService, NotificationService notificationService, ChatService chatService) : base(dbContext)
 		{
 			this.aesService = aesService;
 			this.notificationService = notificationService;
+			this.chatService = chatService;
 		}
 
 		#region Chat Room Management
 
 		/// <summary>
-		/// Creates a new chat room with the specified name and participants.
+		/// Creates a new chat room with the specified details and participants.
 		/// </summary>
-		/// <remarks>The creator of the chat room is automatically added as a participant. Only users who have a
-		/// user-visible question score with the creator are included as participants. All participant user IDs must exist in
-		/// the database. This action requires authentication.</remarks>
-		/// <param name="dto">An object containing the details required to create the chat room, including the room name and a list of
-		/// participant user IDs. The room name cannot be null or empty. The participant list must contain at least one user
-		/// ID.</param>
-		/// <returns>An HTTP result indicating the outcome of the operation. Returns 200 OK if the chat room is created successfully;
-		/// otherwise, returns a 400 Bad Request or 500 Internal Server Error with an appropriate error message.</returns>
+		/// <remarks>This method requires the user to be authenticated. If the request body is null or invalid, a
+		/// BadRequest response is returned. Exceptions encountered during the creation process are also handled and result in
+		/// a BadRequest response.</remarks>
+		/// <param name="dto">A data transfer object containing the details required to create the chat room, including the room name and a list
+		/// of participant IDs. The room name must not be null or empty, and at least one participant must be specified.</param>
+		/// <returns>An ActionResult that indicates the outcome of the chat room creation. Returns Ok() if the chat room is created
+		/// successfully; otherwise, returns a BadRequest with an error message.</returns>
 		[HttpPost, Authorize]
 		public async Task<ActionResult> CreateChatRoomAsync(ChatRoomCreateDto dto)
 		{
-			// Validate input.
-			if (dto == null) return BadRequest("Request body can not be null.");
-			if (string.IsNullOrWhiteSpace(dto.RoomName)) return BadRequest("RoomName can not be null or empty.");
-			if (dto.ParticipantIds == null || dto.ParticipantIds.Count == 0) return BadRequest("At least one participant must be chosen.");
-
-			var creator = await GetSignedInUserAsync(q => q.Include(u => u.UserVisibilities));
-			if (creator == null) return StatusCode(500);
-
-			// Removes the creator from the participant list, if present, and ensures all participant IDs are unique.
-			dto.ParticipantIds = dto.ParticipantIds
-				.Where(p => p != creator.Id)
-				.Distinct()
-				.ToList();
-
-			// Validates that all participant IDs exist in the database.
-			if (await DbContext.Users
-				.Where(u => dto.ParticipantIds.Contains(u.Id))
-				.CountAsync() != dto.ParticipantIds.Count()
-			) return BadRequest("All id's on the list must exist on the database.");
-
-			// Filters the participant IDs to only include users who are visible to the creator based on user visibilities.
-			dto.ParticipantIds = creator.UserVisibilities
-				.Where(uv => dto.ParticipantIds.Contains(uv.TargetUserId) &&
-					uv.Visibility == UserVisibilityEnum.Visible)
-				.Select(uv => uv.TargetUserId)
-				.ToList();
-
-			var chatRoom = new ChatRoom
+			try
 			{
-				Name = dto.RoomName
-			};
-			await DbContext.ChatRooms.AddAsync(chatRoom);
+				if (dto == null) return BadRequest("Request body can not be null.");
+				if (string.IsNullOrWhiteSpace(dto.RoomName)) return BadRequest("RoomName can not be null or empty.");
+				if (dto.ParticipantIds == null || dto.ParticipantIds.Count == 0) return BadRequest("At least one participant must be chosen.");
 
-			// Creates a list of all the partisipants to be added on the chat room.
-			var allParticipants = new List<Participant>();
+				var creator = await GetSignedInUserAsync(q => q.Include(u => u.UserVisibilities));
+				if (creator == null) return StatusCode(500);
 
-			allParticipants.Add(new Participant
-			{
-				UserId = creator.Id,
-				ChatRoomId = chatRoom.Id
-			});
-			
-			foreach (var id in dto.ParticipantIds)
-			{
-				allParticipants.Add(new Participant
-				{
-					UserId = id,
-					ChatRoomId = chatRoom.Id
-				});
+				await chatService.CreateChatRoomAsync(dto, creator);
+				return Ok();
 			}
-
-			await DbContext.Participants.AddRangeAsync(allParticipants);
-			await DbContext.SaveChangesAsync();
-
-			return Ok("Chat room was created.");
+			catch (Exception ex)
+			{
+				return BadRequest($"Failed to create chat room: {ex.Message}");
+			}
 		}
 
 		/// <summary>
-		/// Retrieves a list of all chat rooms.
+		/// Retrieves a list of all chat rooms available in the system.
 		/// </summary>
-		/// <remarks>This endpoint is restricted to users with the Admin role. The returned list includes all chat
-		/// rooms and their associated participant user IDs.</remarks>
-		/// <returns>An <see cref="ActionResult{T}"/> containing a list of <see cref="ChatRoomResponseDto"/> objects representing all
-		/// chat rooms. Returns a 404 Not Found response if no chat rooms exist.</returns>
+		/// <remarks>This method requires the caller to have 'Admin' role authorization. It handles exceptions that
+		/// may occur during the retrieval process and returns an appropriate error message.</remarks>
+		/// <returns>A list of <see cref="ChatRoomResponseDto"/> objects representing the chat rooms. Returns an HTTP 200 OK response
+		/// with the list, or an HTTP 400 Bad Request response if the retrieval fails.</returns>
 		[HttpGet, Authorize(Roles = "Admin")]
 		public async Task<ActionResult<List<ChatRoomResponseDto>>> GetAllAsync()
 		{
-			// Retrieve all chat rooms
-			List<ChatRoomResponseDto> chatRooms = await DbContext.ChatRooms
-				.Select(cr => new ChatRoomResponseDto
-				{
-					Id = cr.Id,
-					Name = cr.Name,
-					Participants = cr.Participants
-						.Select(p => p.UserId)
-						.ToList()
-				}).ToListAsync();
-			if (chatRooms == null || chatRooms.Count == 0) return NotFound();
-
-			return Ok(chatRooms);
+			try
+			{
+				var chatRooms = await chatService.GetAllAsync();
+				return Ok(chatRooms);
+			}
+			catch (Exception ex)
+			{
+				return BadRequest($"Failed to retrieve chat rooms: {ex.Message}");
+			}
 		}
 
 		/// <summary>
