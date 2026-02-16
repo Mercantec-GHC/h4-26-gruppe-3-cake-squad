@@ -132,20 +132,27 @@ namespace Wavelength.Controllers
 		[HttpPost("Discover")]
 		public async Task<ActionResult<DiscoverUserResponseDto>> DiscoverUsers(List<string>? userIds)
 		{
-            var user = await GetSignedInUserAsync();
+            var user = await GetSignedInUserAsync(q =>
+				q.Include(u => u.UserVisibilities).Include(u => u.Participants)
+            );
             if (user == null) return StatusCode(500);
 
-			var userResult = await DbContext.Users
+            // Get list of user IDs that the signed-in user has already discovered
+            var uvs = user.UserVisibilities.Select(uv => uv.TargetUserId).ToList();
+
+            // Query for a random user who is not in the exclusion list and has not already been discovered
+            var userResult = await DbContext.Users
 				.Include(u => u.UserVisibilities)
 				.Include(u => u.ProfilePictures)
 				.Where(u => userIds == null || !userIds.Contains(u.Id))
-				.Where(u => u.Id != user.Id)
-				.Where(u => !u.UserVisibilities.Any(uv => uv.SourceUserId == user.Id))
+				.Where(u => !uvs.Contains(u.Id))
+                .Where(u => u.Id != user.Id)
                 .OrderBy(u => Guid.NewGuid())
                 .FirstOrDefaultAsync();
 
-			if (userResult == null) return NotFound("No users found.");
+            if (userResult == null) return NotFound("No users found.");
 
+            // Map the user result to the DiscoverUserResponseDto, including only interest pictures and converting tags to labels
             return Ok(new DiscoverUserResponseDto
 			{
 				Id = userResult.Id,
