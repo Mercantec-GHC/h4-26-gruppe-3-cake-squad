@@ -2,6 +2,7 @@
 using Commons.Models.Dtos;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
 using Wavelength.Data;
 using Wavelength.Repositories;
@@ -160,6 +161,52 @@ namespace Wavelength.Services
         }
 
         /// <summary>
+        /// Updates the user's email address and initiates a new email verification process asynchronously.
+        /// </summary>
+        /// <remarks>After updating the email address, the user's email verification status is reset and a
+        /// new verification email is sent. The operation is performed asynchronously and requires that the provided
+        /// email address is unique among verified users.</remarks>
+        /// <param name="user">The user whose email address will be updated. Must not be null.</param>
+        /// <param name="dto">An object containing the new email address. The email must be in a valid format and not already in use by
+        /// another verified user.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
+        /// <exception cref="ArgumentException">Thrown if the new email format is invalid, if the new email is the same as the current email, or if the
+        /// email is already in use by another verified user.</exception>
+        public async Task UpdateUserEmailAsync(User user, UpdateEmailDto dto)
+        {
+            // Validate new email
+            if (!Regex.Matches(dto.Email, "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$").Any())
+                throw new ArgumentException("Invalid email format.");
+
+            // If the email is the same as the current one, do nothing
+            if (user.Email == dto.Email.ToLower())
+                throw new ArgumentException("New email cannot be the same as the current email.");
+
+            // Check if email is already in use by another verified user
+            var existingUser = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == dto.Email.ToLower());
+            if (existingUser != null && existingUser.Id != user.Id && existingUser.IsEmailVerified)
+                throw new ArgumentException("Email already in use.");
+
+            // Update email and set IsEmailVerified to false
+            user.Email = dto.Email.ToLower();
+
+            dbContext.Users.Update(user);
+            await dbContext.SaveChangesAsync();
+
+            // Create new email validation entry
+            //var validation = await emailVaidation.CreateEmailValidationAsync(user.Id);
+
+            // Send validation email
+            //var body = mailService.RenderTemplate("RegistrationMail", new Dictionary<string, string>
+            //{
+            //    { "Name", $"{user.FirstName} {user.LastName}" },
+            //    { "Date", DateTime.Now.ToString("MMMM dd, yyyy") },
+            //    { "Code", validation.ValidationCode }
+            //});
+            //mailService.SendEmail(user.Email, "Wavelength - Bekræft din nye e-mailadresse", body);
+        }
+
+        /// <summary>
         /// Asynchronously updates the specified user's password after validating the current password and the new
         /// password requirements.
         /// </summary>
@@ -219,6 +266,29 @@ namespace Wavelength.Services
             user.UpdatedAt = DateTime.UtcNow;
 
             dbContext.Users.Update(user);
+            await dbContext.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Deletes the specified user account from the database after verifying the current password.
+        /// </summary>
+        /// <remarks>This operation permanently removes the user from the database. Consider implementing
+        /// a soft delete if account recovery or auditing is required.</remarks>
+        /// <param name="user">The user account to be deleted. Must represent a valid, existing user.</param>
+        /// <param name="dto">An object containing account deletion details, including the current password required for verification.</param>
+        /// <returns>A task that represents the asynchronous delete operation.</returns>
+        /// <exception cref="ArgumentException">Thrown if the current password provided in <paramref name="dto"/> does not match the user's password.</exception>
+        public async Task DeleteUserAccountAsync(User user, DeleteAccountDto dto)
+        {
+            // Validate current password
+            if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.HashedPassword))
+                throw new ArgumentException("Current password is incorrect.");
+
+            // Todo: Consider implementing a soft delete by adding an IsDeleted flag,
+            // to the User entity instead of permanently removing the user from the database.
+            // This allows for account recovery and auditing.
+
+            dbContext.Users.Remove(user);
             await dbContext.SaveChangesAsync();
         }
 

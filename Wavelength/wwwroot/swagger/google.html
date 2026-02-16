@@ -2,35 +2,53 @@
 <html>
 <head>
     <meta charset="utf-8" />
-    <title></title>
+    <title>Google Login</title>
 </head>
 <body>
-    <h1> google</h1>
+    <h1>Google</h1>
+
+    <div id="status"></div>
 
     <script>
-        
-        const query = window.location.search;
-        const urlParams = new URLSearchParams(query);
+        const params = new URLSearchParams(window.location.search);
 
-        const paramCode = urlParams.get("code");
-        if(paramCode) {
-            fetch("/auth/oauth/google/callback", {
+        const code = params.get("code");
+        const error = params.get("error");
+
+        const statusElemnt = document.getElementById("status");
+
+        // Hvis brugeren afviste login
+        if (error === "access_denied") {
+            statusElemnt.textContent = "Adgang blev afvist af Google.";
+            console.error("Adgang blev afvist af Google.");
+        }
+        // Hvis vi har en kode → fortsæt login
+        else if (code) {
+            statusElemnt.textContent = "Logger ind via Google...";
+
+            fetch("/auth/google/callback", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ code: paramCode })
+                body: JSON.stringify({ code })
             })
                 .then(r => r.json())
                 .then(data => {
-                    console.log("User info:", data);
                     if (window.opener) {
                         window.opener.postMessage({
-                            type: "login-complete", payload: data
+                            type: "login-complete",
+                            payload: data
                         }, "*");
                     }
                     window.close();
+                })
+                .catch(err => {
+                    statusElemnt.textContent = "Der opstod en fejl under login.";
+                    console.error(err);
                 });
         }
-
+        else {
+            statusElemnt.textContent = "Ingen query parametere blev fundet.";
+        }
     </script>
 </body>
 </html>
