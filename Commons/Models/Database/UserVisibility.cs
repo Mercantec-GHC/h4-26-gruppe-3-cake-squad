@@ -1,5 +1,6 @@
-﻿using Commons.Models.Database;
-using Commons.Enums;
+﻿using Commons.Enums;
+using Commons.Models.Database;
+using System.ComponentModel.DataAnnotations.Schema;
 
 public class UserVisibility : Common<int>
 {
