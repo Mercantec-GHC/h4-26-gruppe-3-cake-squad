@@ -15,33 +15,11 @@ namespace Wavelength
 			// Add OpenAPI/Swagger support
 			builder.Services.AddOpenApi();
 
-            // Configure JWT Authentication
-            builder.Services.AddJwtAuthentication(builder.Configuration);
+			// Add application services and configurations
+			builder.Services.AddWavelengthServices(builder.Configuration);
 
-			// Configure CORS policies
-			builder.Services.AddCorsPolicy(builder.Configuration);
-
-            // Add database access services, including DbContext and repositories
-            builder.Services.AddDatabaseAccess(builder.Configuration);
-
-            // Add swagger gen.
-            builder.Services.AddSwaggerGenWithAuth();
-
-            // Add jwt service
-            builder.Services.AddScoped<JwtService>();
-
-            // Add email services
-            builder.Services.AddSingleton<IEmailTemplateLoader, EmailTemplateLoader>();
-            builder.Services.AddScoped<MailService>();
-
-			builder.Services.AddScoped<AuthService>();
-			builder.Services.AddScoped<NotificationService>();
-
-			// Register AesEncryptionService.
-			builder.Services.AddSingleton<AesEncryptionService>();
-
-            // Add health checks
-            builder.Services.AddHealthChecks();
+			// Add health checks
+			builder.Services.AddHealthChecks();
 
 			var app = builder.Build();
 
@@ -51,24 +29,11 @@ namespace Wavelength
 				app.MapOpenApi();
 			}
 
-			// Enable middleware to serve generated Swagger as a JSON endpoint and the Swagger UI
-			app.UseSwagger();
-			app.UseSwaggerUI(options =>
-			{
-				options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
-				options.RoutePrefix = "swagger";
-				options.AddSwaggerBootstrap().AddExperimentalFeatures();
-				options.InjectJavascript("/swagger/login.js");
-            });
-
-			// Enable static files to support swagger bootstrap
-			app.UseStaticFiles();
+			// Use custom application services and middleware
+			app.UseWavelengthServices(builder.Configuration);
 
 			// Enable HTTPS redirection
 			app.UseHttpsRedirection();
-
-			// Enable CORS
-			app.UseCors(app.Environment.IsDevelopment() ? "AllowAllLocalhost" : "AllowFlutterApp");
 
 			// Enable authentication and authorization
 			app.UseAuthentication();
@@ -79,17 +44,6 @@ namespace Wavelength
 
 			// Add health checks endpoint
 			app.MapHealthChecks("/health");
-
-			app.Map("/oauth/google.json", appBuilder =>
-			{
-				appBuilder.Run(async conetxt =>
-				{
-					var jsonObject = new { ClientId = builder.Configuration["Oauth:Google:ClientId"], ReturnUri = builder.Configuration["Oauth:Google:RedirectUri"] };
-					var jsonString = System.Text.Json.JsonSerializer.Serialize(jsonObject);
-					conetxt.Response.ContentType = "application/json";
-					await conetxt.Response.WriteAsync(jsonString);
-				});
-			});
 
 			app.Run();
 		}
