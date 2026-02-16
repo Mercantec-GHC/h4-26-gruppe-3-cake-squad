@@ -1,10 +1,6 @@
-﻿using Commons.Models.Database;
-using Commons.Models.Dtos;
+﻿using Commons.Models.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.IdentityModel.Tokens.Jwt;
-using System.Text.Json;
 using Wavelength.Data;
 using Wavelength.Services;
 
@@ -22,21 +18,20 @@ namespace Wavelength.Controllers
     public class AuthController : BaseController
     {
         private readonly AuthService authService;
-		private readonly IConfiguration configuration;
-		private readonly JwtService jwtService;
+        private readonly OauthService oauthService;
 
-		/// <summary>
-		/// Initializes a new instance of the AuthController class with the specified database context and
-		/// authentication service.
-		/// </summary>
-		/// <param name="dbContext">The database context used to access application data.</param>
-		/// <param name="authService">The authentication service used to handle user authentication operations.</param>
-		public AuthController(AppDbContext dbContext, AuthService authService, IConfiguration configuration, JwtService jwtService) : base(dbContext)
+        /// <summary>
+        /// Initializes a new instance of the AuthController class with the specified database context, authentication
+        /// service, and OAuth service.
+        /// </summary>
+        /// <param name="dbContext">The database context used for accessing application data.</param>
+        /// <param name="authService">The authentication service responsible for handling user authentication operations.</param>
+        /// <param name="oauthService">The OAuth service used for managing OAuth-based authentication and authorization.</param>
+        public AuthController(AppDbContext dbContext, AuthService authService, OauthService oauthService) : base(dbContext)
         {
             this.authService = authService;
-			this.configuration = configuration;
-			this.jwtService = jwtService;
-		}
+            this.oauthService = oauthService;
+        }
 
         /// <summary>
         /// Registers a new user account using the specified registration details.
@@ -121,6 +116,32 @@ namespace Wavelength.Controllers
         }
 
         /// <summary>
+        /// Updates the signed-in user's email address using the provided data transfer object.
+        /// </summary>
+        /// <remarks>This method requires the caller to be authenticated. The email update operation may
+        /// fail if the provided email address is invalid or already in use.</remarks>
+        /// <param name="dto">An object containing the new email address and any required information for the update operation. Cannot be
+        /// null.</param>
+        /// <returns>An <see cref="ActionResult"/> indicating the outcome of the operation. Returns <see langword="Ok"/> if the
+        /// email is updated successfully; <see langword="Unauthorized"/> if the user is not authenticated; or <see
+        /// langword="BadRequest"/> if the input is invalid.</returns>
+        [HttpPut("updateEmail"), Authorize]
+        public async Task<ActionResult> UpdateEmailAsync(UpdateEmailDto dto)
+        {
+            try
+            {
+                var user = await GetSignedInUserAsync();
+                if (user == null) return Unauthorized("User not authenticated.");
+                await authService.UpdateUserEmailAsync(user, dto);
+                return Ok("Email updated successfully.");
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+
+        /// <summary>
         /// Updates the signed-in user's password using the specified password information.
         /// </summary>
         /// <remarks>This action requires the user to be authenticated. The password update will fail if
@@ -156,7 +177,7 @@ namespace Wavelength.Controllers
         [HttpPut("updateDescription"), Authorize]
         public async Task<ActionResult> UpdateDescriptionAsync(UpdateDescriptionDto dto)
         {
-            try 
+            try
             {
                 var user = await GetSignedInUserAsync();
                 if (user == null) return Unauthorized("User not authenticated.");
@@ -187,101 +208,55 @@ namespace Wavelength.Controllers
             return Ok(meDto);
         }
 
-		//     [HttpPost("OauthLogin")]
-		//     public async Task<ActionResult> OauthLoginAsync(OauthDto dto)
-		//     {
-		//         if (dto == null) return BadRequest("Invalid request data.");
-		//         if (string.IsNullOrWhiteSpace(dto.Provider)) return BadRequest("Provider is required.");
-		//         if (string.IsNullOrWhiteSpace(dto.Code)) return BadRequest("Code is required.");
-
-		//         if (dto.Provider == "Google")
-		//         {
-		//             using var client = new HttpClient();
-
-		//             client.DefaultRequestHeaders.Authorization =
-		//                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", dto.Code);
-
-		//             var response = await client.GetAsync("https://www.googleapis.com/oauth2/v2/userinfo");
-
-		//             if (!response.IsSuccessStatusCode) return BadRequest(await response.Content.ReadAsStringAsync());
-
-		//             var json = await response.Content.ReadAsStringAsync();
-
-		//             var jsonDoc = System.Text.Json.JsonDocument.Parse(json);
-		//             return Ok(jsonDoc);
-		//}
-
-		//         return BadRequest("Provider not supported.!!!!!!!!!");
-		//     }
-
-		[HttpPost("oauth/google/callback")]
-		public async Task<IActionResult> GoogleCallback([FromBody] GoogleCodeRequest request)
-		{
-			var client = new HttpClient();
-
-			var dict = new Dictionary<string, string>
-	        {
-		        { "code", request.Code },
-		        { "client_id", configuration["Oauth:Google:ClientId"] },
-		        { "client_secret", configuration["Oauth:Google:ClientSecret"] },
-		        { "redirect_uri", configuration["Oauth:Google:RedirectUri"] },
-		        { "grant_type", "authorization_code" }
-	        };
-
-			var response = await client.PostAsync(
-				"https://oauth2.googleapis.com/token",
-				new FormUrlEncodedContent(dict));
-
-			var json = await response.Content.ReadAsStringAsync();
-			var token = JsonSerializer.Deserialize<GoogleTokenResponse>(json);
-
-			// Decode ID token (fastest way)
-			var handler = new JwtSecurityTokenHandler();
-			var jwt = handler.ReadJwtToken(token.id_token);
-
-			var googleUser = new
-			{
-				Email = jwt.Claims.First(c => c.Type == "email").Value,
-				FirstName = jwt.Claims.First(c => c.Type == "given_name").Value,
-				LastName = jwt.Claims.First(c => c.Type == "family_name").Value,
-				Picture = jwt.Claims.First(c => c.Type == "picture").Value,
-				GoogleId = jwt.Claims.First(c => c.Type == "sub").Value
-			};
-
-            var user = await DbContext.Users.FirstOrDefaultAsync(u => u.Email == googleUser.Email);
-
-			if (user == null)
+        /// <summary>
+        /// Deletes the signed-in user's account using the provided account deletion details.
+        /// </summary>
+        /// <remarks>This method requires the user to be authenticated. The account deletion is performed
+        /// asynchronously. If the provided account deletion details are invalid, a BadRequest response is
+        /// returned.</remarks>
+        /// <param name="dto">An object containing information required to delete the account. Cannot be null; must include valid account
+        /// deletion data as expected by the service.</param>
+        /// <returns>An ActionResult indicating the outcome of the account deletion operation. Returns Ok if the account is
+        /// deleted successfully; BadRequest if the request is invalid; Unauthorized if the user is not authenticated.</returns>
+        [HttpDelete("deleteAccount"), Authorize]
+        public async Task<ActionResult> DeleteAccountAsync(DeleteAccountDto dto)
+        {
+            try
             {
-                user = new User
-                {
-                    Email = googleUser.Email,
-                    FirstName = googleUser.FirstName,
-                    LastName = googleUser.LastName,
-                    Birthday = DateOnly.FromDateTime(DateTime.UtcNow), // Placeholder, since Google doesn't provide birthday by default
-					HashedPassword = string.Empty, // No password since it's OAuth
-                    IsEmailVerified = true // Assume verified since it's from Google
-                };
-                DbContext.Users.Add(user);
-                await DbContext.SaveChangesAsync();
+                var user = await GetSignedInUserAsync();
+                if (user == null) return Unauthorized("User not authenticated.");
+                await authService.DeleteUserAccountAsync(user, dto);
+                return Ok("Account deleted successfully.");
             }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
 
-            var authResponse = await jwtService.CreateAuthResponseAsync(user);
-
-			return Ok(authResponse);
-		}
-
-		public class GoogleCodeRequest
-		{
-			public string Code { get; set; }
-		}
-
-		public class GoogleTokenResponse
-		{
-			public string access_token { get; set; }
-			public string id_token { get; set; }
-			public string token_type { get; set; }
-			public int expires_in { get; set; }
-			public string refresh_token { get; set; } // optional, may be null
-		}
-	}
+        /// <summary>
+        /// Handles the callback from Google's OAuth authentication flow and returns an authentication response for the
+        /// user.
+        /// </summary>
+        /// <remarks>This endpoint is intended to be called by Google's OAuth redirect after user
+        /// authorization. The returned authentication response typically includes a JWT token and user information. If
+        /// the provided authorization code is invalid or missing, a bad request is returned.</remarks>
+        /// <param name="request">The OAuth callback data received from Google, containing the authorization code required to complete
+        /// authentication. Cannot be null.</param>
+        /// <returns>An <see cref="ActionResult{AuthResponseDto}"/> containing the authentication response if the callback is
+        /// valid; otherwise, a bad request result with an error message.</returns>
+        [HttpPost("google/callback")]
+        public async Task<ActionResult<AuthResponseDto>> GoogleCallback(OauthWebDto request)
+        {
+            try
+            {
+                var jwt = await oauthService.HandleGoogleCallback(request.Code);
+                return Ok(jwt);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+        }
+    }
 }
