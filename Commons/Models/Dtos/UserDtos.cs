@@ -77,4 +77,13 @@ namespace Commons.Models.Dtos
         public List<int> Pictures { get; set; }
         public List<string> Tags { get; set; }
     }
+
+    public class UserMatchResponseDto
+    {
+        public string Id { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+        public int? MatchPercent { get; set; }
+        public List<string> Tags { get; set; }
+    }
 }

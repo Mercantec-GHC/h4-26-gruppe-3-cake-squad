@@ -162,5 +162,62 @@ namespace Wavelength.Controllers
 					.Select(t => InterestData.Labels[t]).ToList()
 			});
 		}
+
+		[HttpGet("MatchesCount"), Authorize]
+		public async Task<ActionResult<int>> GetMatchesCount(int pageCount)
+		{
+			if (pageCount <= 0) return BadRequest("Page count must be greater than 0.");
+
+            var user = await GetSignedInUserAsync();
+            if (user == null) return StatusCode(500);
+
+            int count = await DbContext.UserVisibilities
+                .Where(uv => uv.SourceUserId == user.Id && uv.Visibility == UserVisibilityEnum.Visible)
+                .CountAsync();
+
+            return Ok(Math.Ceiling((decimal)count / pageCount));
+        }
+
+        [HttpGet("MatchedUsers"), Authorize]
+		public async Task<ActionResult<List<UserMatchResponseDto>>> GetMatchedUsers(int count, int page)
+		{
+			if (count <= 0 || page < 0) return BadRequest("Count must be greater than 0 and page must be non-negative.");
+
+			var user = await GetSignedInUserAsync(q => 
+				q.Include(u => u.QuizScores)
+			);
+			if (user == null) return StatusCode(500);
+
+            var matches = await DbContext.UserVisibilities
+				.Include(uv => uv.SourceUser)
+				.ThenInclude(su => su.QuizScores)
+				.Include(uv => uv.TargetUser)
+				.Where(uv => uv.SourceUserId == user.Id && uv.Visibility == UserVisibilityEnum.Visible)
+				.Skip(count * (page - 1))
+				.Take(count)
+				.Select(uv => new
+				{
+					Id = uv.TargetUser.Id,
+					FirstName = uv.TargetUser.FirstName,
+					LastName = uv.TargetUser.LastName,
+					MatchPercent = uv.SourceUser.QuizScores
+						.Where(qs => qs.QuizOwnerId == uv.TargetUser.Id)
+						.Select(qs => (int?)qs.MatchPercent)
+						.FirstOrDefault(),
+					ValueTags = uv.TargetUser.ValueTags
+				})
+				.ToListAsync();
+
+            var result = matches.Select(m => new UserMatchResponseDto
+            {
+                Id = m.Id,
+                FirstName = m.FirstName,
+                LastName = m.LastName,
+                MatchPercent = m.MatchPercent,
+                Tags = m.ValueTags.Select(t => InterestData.Labels[t]).ToList()
+            }).ToList();
+
+            return Ok(result);
+        }
     }
 }
