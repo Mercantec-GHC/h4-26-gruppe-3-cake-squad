@@ -1,0 +1,36 @@
+﻿<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8" />
+    <title>Test Email</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        p {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>Hej {{Name}}</h1>
+        <p>Dette er en testmail sendt fra din API.</p>
+        <p>Du modtog denne mail den {{Date}}.</p>
+    </div>
+</body>
+</html>

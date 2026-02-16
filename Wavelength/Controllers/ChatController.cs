@@ -5,27 +5,40 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Wavelength.Data;
+using Wavelength.Services;
 
 namespace Wavelength.Controllers
 {
 	/// <summary>
 	/// Provides API endpoints for managing chat rooms, participants, and messages within the application. Supports
-	/// operations such as creating chat rooms, retrieving chat room details, managing participants, and sending or
-	/// retrieving chat messages.
+	/// operations such as creating and updating chat rooms, sending and retrieving messages, and managing chat
+	/// participants.
 	/// </summary>
-	/// <remarks>All endpoints require authentication, and certain actions are restricted to users with specific
-	/// roles (such as 'Admin') or to participants of a chat room. The controller enforces authorization and input
-	/// validation to ensure secure and consistent chat functionality. Responses follow standard HTTP status conventions,
-	/// providing clear feedback for success and error scenarios.</remarks>
+	/// <remarks>All endpoints require authentication, and certain operations are restricted to users with specific
+	/// roles (such as Admin) or to participants of a chat room. Message content is encrypted before storage to ensure
+	/// privacy. The controller enforces input validation and access control for all chat-related actions.</remarks>
 	[ApiController]
 	[Route("[controller]")]
 	public class ChatController : BaseController
 	{
+		private readonly AesEncryptionService aesService;
+		private readonly NotificationService notificationService;
+
 		/// <summary>
-		/// Initializes a new instance of the ChatController class using the specified database context.
+		/// Initializes a new instance of the ChatController class with the specified database context, encryption service,
+		/// and notification service.
 		/// </summary>
-		/// <param name="dbContext">The database context to be used by the controller for data access operations. Cannot be null.</param>
-		public ChatController(AppDbContext dbContext) : base(dbContext) { }
+		/// <remarks>Use this constructor to provide required dependencies for chat operations, including data access,
+		/// message encryption, and user notifications. All parameters must be valid and non-null to ensure proper controller
+		/// functionality.</remarks>
+		/// <param name="dbContext">The database context used for accessing and managing chat-related data.</param>
+		/// <param name="aesService">The AES encryption service used to secure chat messages and sensitive information.</param>
+		/// <param name="notificationService">The notification service responsible for sending chat notifications to users.</param>
+		public ChatController(AppDbContext dbContext, AesEncryptionService aesService, NotificationService notificationService) : base(dbContext)
+		{
+			this.aesService = aesService;
+			this.notificationService = notificationService;
+		}
 
 		#region Chat Room Management
 
@@ -307,15 +320,16 @@ namespace Wavelength.Controllers
 		#region Message Management
 
 		/// <summary>
-		/// Creates a new chat message in the specified chat room on behalf of the authenticated user.
+		/// Creates a new chat message in the specified chat room.
 		/// </summary>
-		/// <remarks>The authenticated user must be a participant in the specified chat room to send a message. The
-		/// method requires authorization.</remarks>
+		/// <remarks>The user must be authenticated and a participant in the specified chat room to send a message.
+		/// The message content is encrypted before being stored.</remarks>
 		/// <param name="dto">An object containing the details of the message to send, including the chat room identifier and message content.
 		/// Cannot be null.</param>
 		/// <returns>An <see cref="ActionResult"/> indicating the result of the operation. Returns <see cref="OkResult"/> if the
-		/// message is created successfully; otherwise, returns an appropriate error result such as <see
-		/// cref="BadRequestResult"/>, <see cref="UnauthorizedResult"/>, or <see cref="NotFoundResult"/>.</returns>
+		/// message is created successfully; <see cref="BadRequestResult"/> if the input is invalid; <see
+		/// cref="NotFoundResult"/> if the chat room does not exist; <see cref="UnauthorizedResult"/> if the user is not a
+		/// participant in the chat room; or <see cref="StatusCodeResult"/> with status 500 if the user cannot be determined.</returns>
 		[HttpPost("message"), Authorize]
 		public async Task<ActionResult> SendMessageAsync(ChatMessageCreateDto dto)
 		{
@@ -340,25 +354,42 @@ namespace Wavelength.Controllers
 			{
 				ChatRoomId = dto.ChatRoomId,
 				SenderId = sender.Id,
-				MessageContent = dto.MessageContent
+				MessageContent = aesService.Encrypt(dto.MessageContent)
 			};
+			
 			await DbContext.ChatMessages.AddAsync(message);
 			await DbContext.SaveChangesAsync();
 
-			return Ok("Message was created.");
+			// Send notifications to all participants except the sender.
+			var notificationRequest = new MessageNotificationRequestDto
+			{
+				SenderId = sender.Id,
+				ChatRoomId = dto.ChatRoomId,
+				ObjectId = message.Id.ToString(),
+				Content = $"New message in chat room '{chatRoom.Name}' from {sender.FirstName} {sender.LastName}."
+			};
+
+			try
+			{
+				await notificationService.CreateMessageNotificationAsync(notificationRequest);
+				return Ok("Message was created.");
+			}
+			catch (Exception ex)
+			{
+				return BadRequest($"Message was created but failed to send notifications: {ex.Message}");
+			}
 		}
 
 		/// <summary>
-		/// Retrieves a paginated list of messages from a specified chat room based on the provided request parameters.
+		/// Retrieves a paginated list of messages from a specified chat room.
 		/// </summary>
-		/// <remarks>Only users who are participants in the specified chat room or have the Admin role can access the
-		/// messages. The response includes a limited number of messages per request and supports cursor-based pagination for
-		/// efficient retrieval of large message histories.</remarks>
+		/// <remarks>Only users who are participants in the chat room or have the Admin role can access the messages.
+		/// The response includes a cursor for pagination and indicates if more messages are available.</remarks>
 		/// <param name="dto">An object containing the chat room identifier and optional pagination cursor. The chat room ID must not be null or
 		/// empty.</param>
-		/// <returns>An ActionResult containing a ChatMessageResponseDto with the list of chat messages, pagination information, and a
-		/// cursor for retrieving additional messages if available. Returns an error response if the request is invalid or the
-		/// user is not authorized.</returns>
+		/// <returns>An <see cref="ActionResult{ChatMessageResponseDto}"/> containing the list of chat messages for the specified chat
+		/// room, along with pagination information. Returns an error response if the request is invalid or the user is not
+		/// authorized.</returns>
 		[HttpPost("messages/getMessages"), Authorize]
 		public async Task<ActionResult<ChatMessageResponseDto>> GetAllChatRoomMessagesAsync(ChatMessageRequestDto dto)
 		{
@@ -392,7 +423,7 @@ namespace Wavelength.Controllers
 				{
 					Id = cm.Id,
 					CreatedAt = cm.CreatedAt,
-					MessageContent = cm.MessageContent,
+					MessageContent = aesService.Decrypt(cm.MessageContent),
 					Sender = new UserMessageDto
 					{
 						Id = cm.Sender.Id,

@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Wavelength.Data;
 using Wavelength.Services;
 
 namespace Wavelength
@@ -10,8 +9,8 @@ namespace Wavelength
 		{
 			var builder = WebApplication.CreateBuilder(args);
 
-			// Add services to the container.
-			builder.Services.AddControllers();
+            // Add controller services
+            builder.Services.AddControllers();
 
 			// Add OpenAPI/Swagger support
 			builder.Services.AddOpenApi();
@@ -22,15 +21,25 @@ namespace Wavelength
 			// Configure CORS policies
 			builder.Services.AddCorsPolicy(builder.Configuration);
 
-			// Configure DbContext with PostgreSQL
-			builder.Services.AddDbContext<AppDbContext>(
-				options => options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+            // Add database access services, including DbContext and repositories
+            builder.Services.AddDatabaseAccess(builder.Configuration);
 
-			// Add swagger gen.
-			builder.Services.AddSwaggerGenWithAuth();
+            // Add swagger gen.
+            builder.Services.AddSwaggerGenWithAuth();
 
-			// Register JwtService
-			builder.Services.AddScoped<JwtService>();
+            // Add jwt service
+            builder.Services.AddScoped<JwtService>();
+
+            // Add email services
+            builder.Services.AddSingleton<IEmailTemplateLoader, EmailTemplateLoader>();
+            builder.Services.AddScoped<MailService>();
+
+            builder.Services.AddScoped<AuthService>();
+            builder.Services.AddScoped<OauthService>();
+            builder.Services.AddScoped<NotificationService>();
+
+			// Register AesEncryptionService.
+			builder.Services.AddSingleton<AesEncryptionService>();
 
             // Add health checks
             builder.Services.AddHealthChecks();
@@ -71,6 +80,17 @@ namespace Wavelength
 
 			// Add health checks endpoint
 			app.MapHealthChecks("/health");
+
+			app.Map("/oauth/google.json", appBuilder =>
+			{
+				appBuilder.Run(async conetxt =>
+				{
+					var jsonObject = new { ClientId = builder.Configuration["Oauth:Google:ClientId"], ReturnUri = builder.Configuration["Oauth:Google:RedirectUri"] };
+					var jsonString = System.Text.Json.JsonSerializer.Serialize(jsonObject);
+					conetxt.Response.ContentType = "application/json";
+					await conetxt.Response.WriteAsync(jsonString);
+				});
+			});
 
 			app.Run();
 		}

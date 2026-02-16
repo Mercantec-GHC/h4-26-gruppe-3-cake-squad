@@ -21,8 +21,9 @@ namespace Wavelength.Data
         public DbSet<ChatMessage> ChatMessages { get; set; }
         public DbSet<UserVisibility> UserVisibilities { get; set; }
         public DbSet<EmailValidation> EmailValidations { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
+		public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
 
         public override int SaveChanges()
         {
@@ -182,7 +183,29 @@ namespace Wavelength.Data
             modelBuilder.Entity<EmailValidation>()
                 .HasIndex(ev => ev.ValidationCode)
                 .IsUnique();
-        }
+
+			// Configure the relationship between Notification and User (TargetUser)
+			modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
+
+			// Configure the relationship between Notification and User (Sender)
+			modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Sender)
+                .WithMany()
+                .HasForeignKey(n => n.SenderId);
+
+			// Configure the relationship between Notification and User (Target)½
+			modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Target)
+                .WithMany()
+                .HasForeignKey(n => n.TargetId);
+
+			// Configure the enum to string conversion for Notification.Type
+			modelBuilder.Entity<Notification>()
+                .Property(n => n.Type)
+                .HasConversion<string>();
+		}
 
         /// <summary>
         /// Deserializes a JSON string into a <see cref="Quiz"/> object.

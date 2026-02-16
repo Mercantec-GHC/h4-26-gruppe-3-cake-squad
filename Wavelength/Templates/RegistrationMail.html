@@ -1,0 +1,90 @@
+﻿<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8" />
+    <title>Velkommen til Wavelength</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f3f2ff;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+        .email-wrapper {
+            width: 100%;
+            padding: 30px 0;
+        }
+        .email-container {
+            max-width: 620px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.08);
+        }
+        .content {
+            padding: 28px;
+            color: #333333;
+        }
+        .content p {
+            font-size: 16px;
+            line-height: 1.55;
+            margin: 0 0 16px 0;
+        }
+        .code-box {
+            margin: 26px 0;
+            padding: 18px;
+            background: #f0edff;
+            border-left: 5px solid #6a5cff;
+            border-radius: 8px;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 4px;
+            text-align: center;
+            color: #4a3aff;
+        }
+        .footer {
+            padding: 20px 28px;
+            font-size: 12px;
+            color: #777777;
+            text-align: center;
+            background: #faf9ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-wrapper">
+        <div class="email-container">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, #6a5cff, #8f7bff);">
+                <tr>
+                    <td style="padding: 24px 28px; color: #ffffff; font-family: Helvetica, Arial, sans-serif; font-size: 26px; font-weight: 600;">
+                        Velkommen, {{Name}}
+                    </td>
+                    <td align="right" style="padding: 24px 28px;">
+                        <img src="https://wavelength-api.mercantec.tech/images/logo.png" alt="Wavelength logo" width="48" height="48" style="display: block;" />
+                    </td>
+                </tr>
+            </table>
+            <div class="content">
+                <p>Vi er glade for at have dig med på Wavelength — stedet hvor gode forbindelser starter.</p>
+
+                <p>Din aktiveringskode blev sendt <strong>{{Date}}</strong> og er gyldig i 24 timer.</p>
+
+                <p>Her er din personlige kode:</p>
+
+                <div class="code-box">
+                    {{Code}}
+                </div>
+
+                <p>Indtast koden i appen for at aktivere din konto. Hvis du ikke selv har oprettet en konto, kan du ignorere denne besked.</p>
+
+                <p>Vi glæder os til at se dig på Wavelength.</p>
+            </div>
+            <div class="footer">
+                Denne besked er sendt automatisk. Svar venligst ikke på den.
+            </div>
+        </div>
+    </div>
+</body>
+</html>
