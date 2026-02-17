@@ -76,19 +76,18 @@ namespace Wavelength.Controllers
 		}
 
 		/// <summary>
-		/// Retrieves a list of all chat rooms available in the system.
+		/// Retrieves all available chat rooms asynchronously.
 		/// </summary>
-		/// <remarks>This method requires the caller to have 'Admin' role authorization. It handles exceptions that
-		/// may occur during the retrieval process and returns an appropriate error message.</remarks>
-		/// <returns>A list of <see cref="ChatRoomResponseDto"/> objects representing the chat rooms. Returns an HTTP 200 OK response
-		/// with the list, or an HTTP 400 Bad Request response if the retrieval fails.</returns>
+		/// <remarks>This method requires the caller to have 'Admin' role permissions. If an error occurs during the
+		/// retrieval process, a bad request response is returned with an error message.</remarks>
+		/// <returns>A list of <see cref="ChatRoomResponseDto"/> objects representing the chat rooms. Returns an empty list if no chat
+		/// rooms are available.</returns>
 		[HttpGet, Authorize(Roles = "Admin")]
 		public async Task<ActionResult<List<ChatRoomResponseDto>>> GetAllAsync()
 		{
 			try
 			{
-				var chatRooms = await chatService.GetAllAsync();
-				return Ok(chatRooms);
+				return Ok(await chatService.GetAllAsync());
 			}
 			catch (Exception ex)
 			{
@@ -97,83 +96,61 @@ namespace Wavelength.Controllers
 		}
 
 		/// <summary>
-		/// Retrieves the details of a chat room by its unique identifier.
+		/// Retrieves the details of a chat room identified by the specified chat room ID.
 		/// </summary>
-		/// <remarks>Only administrators or participants of the specified chat room are authorized to access its
-		/// details. The response will be NotFound if the chat room does not exist, Unauthorized if the user lacks permission,
-		/// or BadRequest if the identifier is invalid.</remarks>
-		/// <param name="chatRoomId">The unique identifier of the chat room to retrieve. Cannot be null or empty.</param>
-		/// <returns>An <see cref="ActionResult{ChatRoomResponseDto}"/> containing the chat room details if found and accessible;
-		/// otherwise, an appropriate error response such as NotFound, Unauthorized, or BadRequest.</returns>
+		/// <remarks>This method requires the caller to be authenticated. If the user is not signed in, a 500 status
+		/// code is returned. If the chat room ID is invalid, a BadRequest response is returned.</remarks>
+		/// <param name="chatRoomId">The unique identifier of the chat room to retrieve. This value must not be null, empty, or consist only of
+		/// white-space characters.</param>
+		/// <returns>An ActionResult containing a ChatRoomResponseDto with the chat room details if found; otherwise, a BadRequest
+		/// result if the chat room ID is invalid, or a 500 status code if the user is not authenticated.</returns>
 		[HttpGet("{chatRoomId}"), Authorize]
 		public async Task<ActionResult<ChatRoomResponseDto>> GetChatRoomByIdAsync(string chatRoomId)
 		{
-			// Validate input.
-			if (string.IsNullOrWhiteSpace(chatRoomId)) return BadRequest("Chat room id can not be null or empty.");
-
-			// Check permissions.
-			var user = await GetSignedInUserAsync();
-			if (user == null) return StatusCode(500);
-			if (user.Roles.Contains(RoleEnum.Admin) == false)
+			try
 			{
-				bool isParticipant = await DbContext.Participants
-					.AnyAsync(p => p.ChatRoomId == chatRoomId && p.UserId == user.Id);
-				if (!isParticipant) return Unauthorized("You do not have permission to access this chat room.");
+				if (string.IsNullOrWhiteSpace(chatRoomId)) return BadRequest("Chat room id can not be null or empty.");
+
+				var user = await GetSignedInUserAsync();
+				if (user == null) return StatusCode(500);
+
+				return Ok(await chatService.GetChatRoomByIdAsync(chatRoomId, user));
 			}
-
-			// Retrieve chat room.
-			var chatRoom = await DbContext.ChatRooms
-				.Where(cr => cr.Id == chatRoomId)
-				.Select(cr => new ChatRoomResponseDto
-				{
-					Id = cr.Id,
-					Name = cr.Name,
-					Participants = cr.Participants
-						.Select(p => p.UserId)
-						.ToList()
-				}).FirstOrDefaultAsync();
-			if (chatRoom == null) return NotFound();
-
-			return Ok(chatRoom);
+			catch (Exception ex)
+			{
+				return BadRequest($"Failed to retrieve chat room: {ex.Message}");
+			}
 		}
 
 		/// <summary>
-		/// Updates the details of an existing chat room.
+		/// Updates the details of an existing chat room with the specified information.
 		/// </summary>
-		/// <remarks>Only administrators or participants of the chat room are authorized to perform this operation.
-		/// The user must be authenticated.</remarks>
-		/// <param name="dto">An object containing the updated information for the chat room. The chat room ID and name must not be null or
-		/// empty.</param>
-		/// <returns>An HTTP response indicating the result of the update operation. Returns 200 (OK) if the update is successful, 400
-		/// (Bad Request) if the input is invalid, 401 (Unauthorized) if the user does not have permission, or 404 (Not Found)
-		/// if the chat room does not exist.</returns>
+		/// <remarks>This method requires the caller to be authorized. The request will fail if the chat room
+		/// identifier or name is missing or empty. An error response is returned if the update cannot be completed.</remarks>
+		/// <param name="dto">An object containing the updated chat room information, including the unique identifier and the new name. The
+		/// identifier and name must not be null or empty.</param>
+		/// <returns>An ActionResult that indicates the result of the update operation. Returns Ok if the update is successful;
+		/// otherwise, returns BadRequest with an error message.</returns>
 		[HttpPut, Authorize]
 		public async Task<ActionResult> UpdateChatRoomAsync(ChatRoomUpdateDto dto)
 		{
-			// Validate input.
-			if (dto == null) return BadRequest("Request body can not be null.");
-			if (string.IsNullOrWhiteSpace(dto.Id)) return BadRequest("Chat room id can not be null or empty.");
-			if (string.IsNullOrWhiteSpace(dto.Name)) return BadRequest("Chat room name can not be null or empty.");
-
-			// Check permissions.
-			var user = await GetSignedInUserAsync();
-			if (user == null) return StatusCode(500);
-			if (user.Roles.Contains(RoleEnum.Admin) == false)
+			try
 			{
-				bool isParticipant = await DbContext.Participants
-					.AnyAsync(p => p.ChatRoomId == dto.Id && p.UserId == user.Id);
-				if (!isParticipant) return Unauthorized("You do not have permission to access this chat room.");
+				if (dto == null) return BadRequest("Request body can not be null.");
+				if (string.IsNullOrWhiteSpace(dto.Id)) return BadRequest("Chat room id can not be null or empty.");
+				if (string.IsNullOrWhiteSpace(dto.Name)) return BadRequest("Chat room name can not be null or empty.");
+
+				// Check permissions.
+				var user = await GetSignedInUserAsync();
+				if (user == null) return StatusCode(500);
+
+				await chatService.UpdateChatRoomAsync(dto, user);
+				return Ok();
 			}
-
-			// Update chat room.
-			var chatRoom = await DbContext.ChatRooms
-				.FirstOrDefaultAsync(cr => cr.Id == dto.Id);
-			if (chatRoom == null) return NotFound();
-
-			chatRoom.Name = dto.Name;
-			await DbContext.SaveChangesAsync();
-
-			return Ok("Chat room updated successfully.");
+			catch (Exception ex)
+			{
+				return BadRequest($"Failed to update chat room: {ex.Message}");
+			}
 		}
 
 		#endregion
@@ -278,63 +255,32 @@ namespace Wavelength.Controllers
 		#region Message Management
 
 		/// <summary>
-		/// Creates a new chat message in the specified chat room.
+		/// Sends a new message to the specified chat room asynchronously.
 		/// </summary>
-		/// <remarks>The user must be authenticated and a participant in the specified chat room to send a message.
-		/// The message content is encrypted before being stored.</remarks>
-		/// <param name="dto">An object containing the details of the message to send, including the chat room identifier and message content.
-		/// Cannot be null.</param>
-		/// <returns>An <see cref="ActionResult"/> indicating the result of the operation. Returns <see cref="OkResult"/> if the
-		/// message is created successfully; <see cref="BadRequestResult"/> if the input is invalid; <see
-		/// cref="NotFoundResult"/> if the chat room does not exist; <see cref="UnauthorizedResult"/> if the user is not a
-		/// participant in the chat room; or <see cref="StatusCodeResult"/> with status 500 if the user cannot be determined.</returns>
+		/// <remarks>This method requires the user to be authenticated. The request will fail if the input data is
+		/// invalid or if the user cannot be identified.</remarks>
+		/// <param name="dto">A data transfer object containing the details of the message to send, including the chat room identifier and
+		/// message content. The chat room identifier must not be null or empty, and the message content must contain text.</param>
+		/// <returns>An ActionResult that indicates the result of the operation. Returns Ok if the message is sent successfully;
+		/// otherwise, returns a BadRequest with an error message.</returns>
 		[HttpPost("message"), Authorize]
 		public async Task<ActionResult> SendMessageAsync(ChatMessageCreateDto dto)
 		{
-			// Validate input.
-			if (dto == null) return BadRequest("Request body can not be empty.");
-			if (string.IsNullOrWhiteSpace(dto.ChatRoomId)) return BadRequest("Chat room id can not be empty.");
-			if (string.IsNullOrWhiteSpace(dto.MessageContent)) return BadRequest("There must be some message content.");
-
-			var sender = await GetSignedInUserAsync();
-			if (sender == null) return StatusCode(500);
-
-			// Retrieves the chat room with its participants & messages.
-			var chatRoom = await DbContext.ChatRooms
-				.Include(cr => cr.Participants)
-				.Include(cr => cr.ChatMessages)
-				.FirstOrDefaultAsync(cr => cr.Id == dto.ChatRoomId);
-			if (chatRoom == null) NotFound();
-			if (!chatRoom.Participants.Any(p => p.UserId == sender.Id)) return Unauthorized();
-
-			// ;ap new message & save to database.
-			var message = new ChatMessage
-			{
-				ChatRoomId = dto.ChatRoomId,
-				SenderId = sender.Id,
-				MessageContent = aesService.Encrypt(dto.MessageContent)
-			};
-			
-			await DbContext.ChatMessages.AddAsync(message);
-			await DbContext.SaveChangesAsync();
-
-			// Send notifications to all participants except the sender.
-			var notificationRequest = new MessageNotificationRequestDto
-			{
-				SenderId = sender.Id,
-				ChatRoomId = dto.ChatRoomId,
-				ObjectId = message.Id.ToString(),
-				Content = $"New message in chat room '{chatRoom.Name}' from {sender.FirstName} {sender.LastName}."
-			};
-
 			try
 			{
-				await notificationService.CreateMessageNotificationAsync(notificationRequest);
-				return Ok("Message was created.");
+				if (dto == null) return BadRequest("Request body can not be empty.");
+				if (string.IsNullOrWhiteSpace(dto.ChatRoomId)) return BadRequest("Chat room id can not be empty.");
+				if (string.IsNullOrWhiteSpace(dto.MessageContent)) return BadRequest("There must be some message content.");
+
+				var sender = await GetSignedInUserAsync();
+				if (sender == null) return StatusCode(500);
+
+				await chatService.SendMessageAsync(dto, sender);
+				return Ok();
 			}
 			catch (Exception ex)
 			{
-				return BadRequest($"Message was created but failed to send notifications: {ex.Message}");
+				return BadRequest($"Failed to create message: {ex.Message}");
 			}
 		}
 
