@@ -132,20 +132,27 @@ namespace Wavelength.Controllers
 		[HttpPost("Discover")]
 		public async Task<ActionResult<DiscoverUserResponseDto>> DiscoverUsers(List<string>? userIds)
 		{
-            var user = await GetSignedInUserAsync();
+            var user = await GetSignedInUserAsync(q =>
+				q.Include(u => u.UserVisibilities).Include(u => u.Participants)
+            );
             if (user == null) return StatusCode(500);
 
-			var userResult = await DbContext.Users
+            // Get list of user IDs that the signed-in user has already discovered
+            var uvs = user.UserVisibilities.Select(uv => uv.TargetUserId).ToList();
+
+            // Query for a random user who is not in the exclusion list and has not already been discovered
+            var userResult = await DbContext.Users
 				.Include(u => u.UserVisibilities)
 				.Include(u => u.ProfilePictures)
 				.Where(u => userIds == null || !userIds.Contains(u.Id))
-				.Where(u => u.Id != user.Id)
-				.Where(u => !u.UserVisibilities.Any(uv => uv.SourceUserId == user.Id))
+				.Where(u => !uvs.Contains(u.Id))
+                .Where(u => u.Id != user.Id)
                 .OrderBy(u => Guid.NewGuid())
                 .FirstOrDefaultAsync();
 
-			if (userResult == null) return NotFound("No users found.");
+            if (userResult == null) return NotFound("No users found.");
 
+            // Map the user result to the DiscoverUserResponseDto, including only interest pictures and converting tags to labels
             return Ok(new DiscoverUserResponseDto
 			{
 				Id = userResult.Id,
@@ -162,5 +169,62 @@ namespace Wavelength.Controllers
 					.Select(t => InterestData.Labels[t]).ToList()
 			});
 		}
+
+		[HttpGet("MatchesCount"), Authorize]
+		public async Task<ActionResult<int>> GetMatchesCount(int pageCount)
+		{
+			if (pageCount <= 0) return BadRequest("Page count must be greater than 0.");
+
+            var user = await GetSignedInUserAsync();
+            if (user == null) return StatusCode(500);
+
+            int count = await DbContext.UserVisibilities
+                .Where(uv => uv.SourceUserId == user.Id && uv.Visibility == UserVisibilityEnum.Visible)
+                .CountAsync();
+
+            return Ok(Math.Ceiling((decimal)count / pageCount));
+        }
+
+        [HttpGet("MatchedUsers"), Authorize]
+		public async Task<ActionResult<List<UserMatchResponseDto>>> GetMatchedUsers(int count, int page)
+		{
+			if (count <= 0 || page < 0) return BadRequest("Count must be greater than 0 and page must be non-negative.");
+
+			var user = await GetSignedInUserAsync(q => 
+				q.Include(u => u.QuizScores)
+			);
+			if (user == null) return StatusCode(500);
+
+            var matches = await DbContext.UserVisibilities
+				.Include(uv => uv.SourceUser)
+				.ThenInclude(su => su.QuizScores)
+				.Include(uv => uv.TargetUser)
+				.Where(uv => uv.SourceUserId == user.Id && uv.Visibility == UserVisibilityEnum.Visible)
+				.Skip(count * (page - 1))
+				.Take(count)
+				.Select(uv => new
+				{
+					Id = uv.TargetUser.Id,
+					FirstName = uv.TargetUser.FirstName,
+					LastName = uv.TargetUser.LastName,
+					MatchPercent = uv.SourceUser.QuizScores
+						.Where(qs => qs.QuizOwnerId == uv.TargetUser.Id)
+						.Select(qs => (int?)qs.MatchPercent)
+						.FirstOrDefault(),
+					ValueTags = uv.TargetUser.ValueTags
+				})
+				.ToListAsync();
+
+            var result = matches.Select(m => new UserMatchResponseDto
+            {
+                Id = m.Id,
+                FirstName = m.FirstName,
+                LastName = m.LastName,
+                MatchPercent = m.MatchPercent,
+                Tags = m.ValueTags.Select(t => InterestData.Labels[t]).ToList()
+            }).ToList();
+
+            return Ok(result);
+        }
     }
 }
