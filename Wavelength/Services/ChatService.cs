@@ -184,6 +184,72 @@ namespace Wavelength.Services
 		}
 
 		/// <summary>
+		/// Asynchronously retrieves the list of chat rooms in which the specified user is a participant, including the count
+		/// of unread message notifications for each chat room.
+		/// </summary>
+		/// <remarks>This method performs a database query to obtain chat rooms and associated notification counts for
+		/// the user. Ensure that the user parameter is valid and represents an existing user to avoid exceptions.</remarks>
+		/// <param name="user">The user for whom to retrieve chat room participation information. This parameter cannot be null.</param>
+		/// <returns>A list of ChatRoomListDto objects representing each chat room the user is part of. Each object includes the chat
+		/// room's identifier, name, and the number of unread message notifications for the user.</returns>
+		/// <exception cref="KeyNotFoundException">Thrown when the specified user is not a participant in any chat rooms.</exception>
+		public async Task<List<ChatRoomListDto>> GetChatRoomsForUserAsync(User user)
+		{
+			var chatRooms = await dbContext.ChatRooms
+				.Where(cr => cr.Participants.Any(p => p.UserId == user.Id))
+				.ToListAsync();
+			if (chatRooms == null || chatRooms.Count() == 0) throw new KeyNotFoundException("No chat rooms were found.");
+
+			List<ChatRoomListDto> response = new();
+
+			foreach (var chatRoom in chatRooms)
+			{
+				response.Add(new ChatRoomListDto
+				{
+					ChatRoomId = chatRoom.Id,
+					ChatRoomName = chatRoom.Name,
+					NotificationAmount = await dbContext.Notifications
+					.Where(n => n.ObjectId == chatRoom.Id &&
+						n.TargetId == user.Id &&
+						n.Type == NotificationTypeEnum.Message)
+					.CountAsync()
+				});
+			}
+
+			return response;
+		}
+
+		/// <summary>
+		/// Removes all notifications associated with the specified chat room for the given user.
+		/// </summary>
+		/// <remarks>If no notifications exist for the specified chat room and user, the method completes without
+		/// performing any action.</remarks>
+		/// <param name="chatRoomId">The unique identifier of the chat room from which to remove notifications.</param>
+		/// <param name="user">The user for whom notifications will be removed. This parameter must not be null.</param>
+		/// <returns>This method does not return a value.</returns>
+		/// <exception cref="InvalidOperationException">Thrown if an error occurs while attempting to remove a notification.</exception>
+		public async Task RemoveChatRoomNotificationsAsync(string chatRoomId, User user)
+		{
+			var notifications = await dbContext.Notifications
+				.Where(n => n.ObjectId == chatRoomId &&
+					n.TargetId == user.Id)
+				.ToListAsync();
+			if (notifications == null || notifications.Count() == 0) return;
+
+			foreach (var notification in notifications)
+			{
+				try
+				{
+					await notificationService.RemoveNotificationAsync(notification.Id, user);
+				}
+				catch (Exception ex)
+				{
+					throw new InvalidOperationException($"Failed to remove notifications: {ex.Message}");
+				}
+			}
+		}
+
+		/// <summary>
 		/// Removes the specified user from the chat room identified by the given chat room ID. If the chat room has no
 		/// remaining participants after the user leaves, the chat room is deleted.
 		/// </summary>
@@ -298,7 +364,7 @@ namespace Wavelength.Services
 			}
 			catch (Exception ex)
 			{
-				throw new InvalidOperationException("Failed to create notification for new chat message.", ex);
+				throw new InvalidOperationException($"Message was created, but failed to create notification for new chat message: {ex.Message}");
 			}
 		}
 

@@ -29,7 +29,7 @@ namespace Wavelength.Controllers
 		/// the controller to function as expected.</remarks>
 		/// <param name="context">The database context used to access and manage application data.</param>
 		/// <param name="notificationService">The service responsible for handling notification operations, such as sending and managing notifications.</param>
-		public NotificationController(AppDbContext context, NotificationService notificationService) : base(context) 
+		public NotificationController(AppDbContext context, NotificationService notificationService) : base(context)
 		{
 			this.notificationService = notificationService;
 		}
@@ -47,7 +47,7 @@ namespace Wavelength.Controllers
 		[HttpPost, Authorize(Roles = "Admin")]
 		public async Task<ActionResult> CreateNotificationAsync(AdminNotificationRequestDto request)
 		{
-			try 
+			try
 			{
 				if (request == null) return BadRequest("Request body can not be null.");
 				if (request.TargetIds == null || request.TargetIds.Count() == 0) return BadRequest("At least one target user must be specified.");
@@ -119,9 +119,37 @@ namespace Wavelength.Controllers
 				var count = await notificationService.GetNotificationCountAsync(user.Id);
 				return Ok(count);
 			}
-			catch (Exception ex) 
+			catch (Exception ex)
 			{
 				return BadRequest($"Failed to fetch unread notification count: {ex.Message}");
+			}
+		}
+
+		/// <summary>
+		/// Removes a notification for the signed-in user based on the specified notification identifier.
+		/// </summary>
+		/// <remarks>This method requires the user to be authenticated. If the user is not signed in, a 500 Internal
+		/// Server Error is returned. If an error occurs during removal, a bad request response is returned with
+		/// details.</remarks>
+		/// <param name="notificationId">The unique identifier of the notification to remove. This parameter cannot be null or empty.</param>
+		/// <returns>An <see cref="ActionResult"/> that indicates the result of the operation. Returns <see cref="OkResult"/> if the
+		/// notification is successfully removed; otherwise, returns a <see cref="BadRequestObjectResult"/> with an error
+		/// message.</returns>
+		[HttpDelete, Authorize]
+		public async Task<ActionResult> RemoveNotificationAsync(string notificationId)
+		{
+			try
+			{
+				var user = await GetSignedInUserAsync();
+				if (user == null) return StatusCode(500);
+
+				await notificationService.RemoveNotificationAsync(notificationId, user);
+
+				return Ok();
+			}
+			catch (Exception ex)
+			{
+				return BadRequest($"Failed to remove notification: {ex.Message}");
 			}
 		}
 	}

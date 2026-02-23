@@ -161,5 +161,33 @@ namespace Wavelength.Services
 
 			return count;
 		}
+
+		/// <summary>
+		/// Removes a notification identified by its unique identifier if the specified user is authorized to perform the
+		/// operation.
+		/// </summary>
+		/// <remarks>This method enforces authorization by requiring the user to be either the intended recipient of
+		/// the notification or to possess administrative rights. Attempting to remove a notification without proper
+		/// authorization will result in an exception.</remarks>
+		/// <param name="notificationId">The unique identifier of the notification to remove.</param>
+		/// <param name="user">The user requesting the removal. The user must be either the target of the notification or have administrative
+		/// privileges.</param>
+		/// <returns></returns>
+		/// <exception cref="KeyNotFoundException">Thrown if no notification with the specified identifier exists.</exception>
+		/// <exception cref="UnauthorizedAccessException">Thrown if the user is neither the target of the notification nor an administrator.</exception>
+		public async Task RemoveNotificationAsync(string notificationId, User user)
+		{
+			var notification = await dbContext.Notifications
+				.FirstOrDefaultAsync(n => n.Id == notificationId);
+			if (notification == null) throw new KeyNotFoundException("No notification with that id was found.");
+
+			if (!user.Roles.Contains(RoleEnum.Admin))
+			{
+				if (notification.TargetId != user.Id) throw new UnauthorizedAccessException("User is not the target of notification.");
+			}
+
+			dbContext.Notifications.Remove(notification);
+			await dbContext.SaveChangesAsync();
+		}
 	}
 }
