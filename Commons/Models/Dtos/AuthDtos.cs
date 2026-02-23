@@ -9,6 +9,12 @@
         public DateOnly Birthday { get; set; }
     }
 
+    public class RegisterResponseDto
+    {
+        public string UserId { get; set; }
+        public string? ValidationCode { get; set; }
+    }
+
     public class ValidateDto
     {
         public string Code { get; set; }
