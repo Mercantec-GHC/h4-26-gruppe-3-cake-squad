@@ -18,4 +18,11 @@
 		public string Id { get; set; }
 		public string Name { get; set; }
 	}
+
+	public class ChatRoomListDto
+	{
+		public string ChatRoomId { get; set; }
+		public string ChatRoomName { get; set; }
+		public int NotificationAmount { get; set; }
+	}
 }
