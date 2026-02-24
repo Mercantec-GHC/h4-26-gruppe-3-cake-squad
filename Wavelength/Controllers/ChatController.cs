@@ -1,6 +1,4 @@
-﻿using Commons.Enums;
-using Commons.Models.Database;
-using Commons.Models.Dtos;
+﻿using Commons.Models.Dtos;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -24,15 +22,12 @@ namespace Wavelength.Controllers
 		private readonly ChatService chatService;
 
 		/// <summary>
-		/// Initializes a new instance of the ChatController class with the specified database context, encryption service,
-		/// and notification service.
+		/// Initializes a new instance of the ChatController class with the specified database context and chat service.
 		/// </summary>
-		/// <remarks>Use this constructor to provide required dependencies for chat operations, including data access,
-		/// message encryption, and user notifications. All parameters must be valid and non-null to ensure proper controller
-		/// functionality.</remarks>
-		/// <param name="dbContext">The database context used for accessing and managing chat-related data.</param>
-		/// <param name="aesService">The AES encryption service used to secure chat messages and sensitive information.</param>
-		/// <param name="notificationService">The notification service responsible for sending chat notifications to users.</param>
+		/// <remarks>Both parameters must be valid and properly configured to ensure correct operation of the
+		/// controller.</remarks>
+		/// <param name="context">The database context used to access and manage application data.</param>
+		/// <param name="chatService">The service that provides chat-related operations and business logic.</param>
 		public ChatController(AppDbContext context, ChatService chatService) : base(context)
 		{
 			this.chatService = chatService;
@@ -78,7 +73,7 @@ namespace Wavelength.Controllers
 		/// retrieval process, a bad request response is returned with an error message.</remarks>
 		/// <returns>A list of <see cref="ChatRoomResponseDto"/> objects representing the chat rooms. Returns an empty list if no chat
 		/// rooms are available.</returns>
-		[HttpGet, Authorize(Roles = "Admin")]
+		[HttpGet("admin/getAll"), Authorize(Roles = "Admin")]
 		public async Task<ActionResult<List<ChatRoomResponseDto>>> GetAllAsync()
 		{
 			try
@@ -146,6 +141,60 @@ namespace Wavelength.Controllers
 			catch (Exception ex)
 			{
 				return BadRequest($"Failed to update chat room: {ex.Message}");
+			}
+		}
+
+		/// <summary>
+		/// Retrieves a list of chat rooms associated with the currently authenticated user.
+		/// </summary>
+		/// <remarks>This method requires the user to be authenticated. The user must be signed in to access their
+		/// chat rooms. If the user is not found or an error occurs during retrieval, an appropriate HTTP status code is
+		/// returned to indicate the failure.</remarks>
+		/// <returns>An <see cref="ActionResult{T}"/> containing a list of <see cref="ChatRoomListDto"/> objects that represent the
+		/// chat rooms for the signed-in user. Returns an empty list if the user has no associated chat rooms. Returns a 500
+		/// status code if the user cannot be found, or a 400 status code if an error occurs while fetching the chat rooms.</returns>
+		[HttpGet("ListChatRooms"), Authorize]
+		public async Task<ActionResult<List<ChatRoomListDto>>> GetChatRoomsForUserAsync()
+		{
+			try
+			{
+				var user = await GetSignedInUserAsync(q => q.Include(u => u.Participants));
+				if (user == null) return StatusCode(500);
+
+				return Ok(await chatService.GetChatRoomsForUserAsync(user));
+			}
+			catch (Exception ex)
+			{
+				return BadRequest($"Failed to fecth list of chat rooms: {ex.Message}");
+			}
+		}
+
+		/// <summary>
+		/// Removes all notifications for the specified chat room for the currently authenticated user.
+		/// </summary>
+		/// <remarks>This method requires the user to be authenticated. If the chat room ID is invalid or the user is
+		/// not signed in, an appropriate error response is returned.</remarks>
+		/// <param name="chatRoomId">The unique identifier of the chat room from which to remove notifications. Cannot be null, empty, or consist only
+		/// of white-space characters.</param>
+		/// <returns>An ActionResult that indicates the outcome of the operation. Returns Ok() if notifications are successfully
+		/// removed; otherwise, returns a BadRequest with an error message.</returns>
+		[HttpPost("RemoveNotifications"), Authorize]
+		public async Task<ActionResult> RemoveChatRoomNotificationsAsync(string chatRoomId)
+		{
+			try
+			{
+				if (string.IsNullOrWhiteSpace(chatRoomId)) return BadRequest("Chat room id can not be empty.");
+
+				var user = await GetSignedInUserAsync();
+				if (user == null) return StatusCode(500);
+
+				await chatService.RemoveChatRoomNotificationsAsync(chatRoomId, user);
+
+				return Ok();
+			}
+			catch (Exception ex)
+			{
+				return BadRequest($"Failed to remove notifications for the users chat room: {ex.Message}");
 			}
 		}
 

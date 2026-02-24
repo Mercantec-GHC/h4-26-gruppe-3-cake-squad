@@ -2,6 +2,7 @@
 using Commons.Models.Database;
 using Commons.Models.Dtos;
 using Microsoft.EntityFrameworkCore;
+using MimeKit.Encodings;
 using Wavelength.Data;
 
 namespace Wavelength.Services
@@ -59,7 +60,7 @@ namespace Wavelength.Services
 			if (await dbContext.Users
 				.Where(u => dto.ParticipantIds.Contains(u.Id))
 				.CountAsync() != dto.ParticipantIds.Count()
-			) throw new ArgumentException("One or more participant IDs are invalid.", nameof(dto.ParticipantIds));
+			) throw new KeyNotFoundException("One or more participant IDs are invalid.");
 
 			// Filters the participant IDs to only include users who are visible to the creator based on user visibilities.
 			dto.ParticipantIds = creator.UserVisibilities
@@ -67,6 +68,7 @@ namespace Wavelength.Services
 					uv.Visibility == UserVisibilityEnum.Visible)
 				.Select(uv => uv.TargetUserId)
 				.ToList();
+			if (dto.ParticipantIds.Count() == 0) throw new InvalidOperationException("No visible participants available to create a chat room.");
 
 			var chatRoom = new ChatRoom
 			{
@@ -114,7 +116,7 @@ namespace Wavelength.Services
 						.Select(p => p.UserId)
 						.ToList()
 				}).ToListAsync();
-			if (chatRooms == null || chatRooms.Count == 0) throw new ArgumentException("No chat rooms found.", nameof(chatRooms));
+			if (chatRooms == null || chatRooms.Count == 0) throw new KeyNotFoundException("No chat rooms found.");
 
 			return chatRooms;
 		}
@@ -135,7 +137,7 @@ namespace Wavelength.Services
 			{
 				bool isParticipant = await dbContext.Participants
 					.AnyAsync(p => p.ChatRoomId == chatRoomId && p.UserId == user.Id);
-				if (!isParticipant) throw new ArgumentException("You do not have permission to access this chat room.", nameof(user.FirstName));
+				if (!isParticipant) throw new UnauthorizedAccessException("You do not have permission to access this chat room.");
 			}
 
 			var chatRoom = await dbContext.ChatRooms
@@ -148,7 +150,7 @@ namespace Wavelength.Services
 						.Select(p => p.UserId)
 						.ToList()
 				}).FirstOrDefaultAsync();
-			if (chatRoom == null) throw new ArgumentNullException(nameof(chatRoomId), "No chat room with that id was found.");
+			if (chatRoom == null) throw new KeyNotFoundException("No chat room with that id was found.");
 
 			return chatRoom;
 		}
@@ -170,15 +172,81 @@ namespace Wavelength.Services
 			{
 				bool isParticipant = await dbContext.Participants
 					.AnyAsync(p => p.ChatRoomId == dto.Id && p.UserId == user.Id);
-				if (!isParticipant) throw new ArgumentException("You do not have permission to access this chat room.", nameof(user.FirstName));
+				if (!isParticipant) throw new UnauthorizedAccessException("You do not have permission to access this chat room.");
 			}
 
 			var chatRoom = await dbContext.ChatRooms
 				.FirstOrDefaultAsync(cr => cr.Id == dto.Id);
-			if (chatRoom == null) throw new ArgumentNullException(nameof(chatRoom.Id), "No chat room found matching that id.");
+			if (chatRoom == null) throw new KeyNotFoundException("No chat room found matching that id.");
 
 			chatRoom.Name = dto.Name;
 			await dbContext.SaveChangesAsync();
+		}
+
+		/// <summary>
+		/// Asynchronously retrieves the list of chat rooms in which the specified user is a participant, including the count
+		/// of unread message notifications for each chat room.
+		/// </summary>
+		/// <remarks>This method performs a database query to obtain chat rooms and associated notification counts for
+		/// the user. Ensure that the user parameter is valid and represents an existing user to avoid exceptions.</remarks>
+		/// <param name="user">The user for whom to retrieve chat room participation information. This parameter cannot be null.</param>
+		/// <returns>A list of ChatRoomListDto objects representing each chat room the user is part of. Each object includes the chat
+		/// room's identifier, name, and the number of unread message notifications for the user.</returns>
+		/// <exception cref="KeyNotFoundException">Thrown when the specified user is not a participant in any chat rooms.</exception>
+		public async Task<List<ChatRoomListDto>> GetChatRoomsForUserAsync(User user)
+		{
+			var chatRooms = await dbContext.ChatRooms
+				.Where(cr => cr.Participants.Any(p => p.UserId == user.Id))
+				.ToListAsync();
+			if (chatRooms == null || chatRooms.Count() == 0) throw new KeyNotFoundException("No chat rooms were found.");
+
+			List<ChatRoomListDto> response = new();
+
+			foreach (var chatRoom in chatRooms)
+			{
+				response.Add(new ChatRoomListDto
+				{
+					ChatRoomId = chatRoom.Id,
+					ChatRoomName = chatRoom.Name,
+					NotificationAmount = await dbContext.Notifications
+					.Where(n => n.ObjectId == chatRoom.Id &&
+						n.TargetId == user.Id &&
+						n.Type == NotificationTypeEnum.Message)
+					.CountAsync()
+				});
+			}
+
+			return response;
+		}
+
+		/// <summary>
+		/// Removes all notifications associated with the specified chat room for the given user.
+		/// </summary>
+		/// <remarks>If no notifications exist for the specified chat room and user, the method completes without
+		/// performing any action.</remarks>
+		/// <param name="chatRoomId">The unique identifier of the chat room from which to remove notifications.</param>
+		/// <param name="user">The user for whom notifications will be removed. This parameter must not be null.</param>
+		/// <returns>This method does not return a value.</returns>
+		/// <exception cref="InvalidOperationException">Thrown if an error occurs while attempting to remove a notification.</exception>
+		public async Task RemoveChatRoomNotificationsAsync(string chatRoomId, User user)
+		{
+			var notifications = await dbContext.Notifications
+				.Where(n => n.ObjectId == chatRoomId &&
+					n.TargetId == user.Id)
+				.ToListAsync();
+			if (notifications == null || notifications.Count() == 0) return;
+
+			foreach (var notification in notifications)
+			{
+				try
+				{
+					await notificationService.RemoveNotificationAsync(notification.Id, user);
+				}
+				catch (Exception ex)
+				{
+					throw new InvalidOperationException($"Failed to remove notifications: {ex.Message}");
+				}
+			}
 		}
 
 		/// <summary>
@@ -197,11 +265,11 @@ namespace Wavelength.Services
 			var chatRoom = await dbContext.ChatRooms
 				.Include(cr => cr.Participants)
 				.FirstOrDefaultAsync(cr => cr.Id == chatRoomId);
-			if (chatRoom == null) throw new ArgumentNullException(nameof(chatRoom.Id), "No chat room with that id.");
+			if (chatRoom == null) throw new KeyNotFoundException("No chat room with that id.");
 
 			var participant = chatRoom.Participants
 				.FirstOrDefault(p => p.UserId == user.Id);
-			if (participant == null) throw new ArgumentNullException(nameof(participant.Id), "The user is not a participant of this chat room.");
+			if (participant == null) throw new UnauthorizedAccessException("The user is not a participant of this chat room.");
 			chatRoom.Participants.Remove(participant);
 
 			if (!chatRoom.Participants.Any())
@@ -228,17 +296,17 @@ namespace Wavelength.Services
 			if (await dbContext.Users
 				.Where(u => dto.ParticipantIds.Contains(u.Id))
 				.CountAsync() != dto.ParticipantIds.Count()
-			) throw new ArgumentException("All id's on the list must exist on the database.", nameof(dto.ParticipantIds));
+			) throw new KeyNotFoundException("All id's on the list must exist on the database.");
 
 			var chatRoom = await dbContext.ChatRooms
 				.Include(cr => cr.Participants)
 				.FirstOrDefaultAsync(cr => cr.Id == dto.ChatRoomId);
-			if (chatRoom == null) throw new ArgumentNullException(nameof(chatRoom.Id), "No chat room found with that id.");
+			if (chatRoom == null) throw new KeyNotFoundException("No chat room found with that id.");
 
 			var participants = chatRoom.Participants
 				.Where(p => dto.ParticipantIds.Contains(p.UserId))
 				.ToList();
-			if (participants == null) throw new ArgumentNullException(nameof(participants), "No of the participants are a part of this chat room.");
+			if (participants == null || participants.Count == 0) throw new InvalidOperationException("None of the participants are a part of this chat room.");
 
 			foreach (var participant in participants)
 			{
@@ -269,8 +337,8 @@ namespace Wavelength.Services
 				.Include(cr => cr.Participants)
 				.Include(cr => cr.ChatMessages)
 				.FirstOrDefaultAsync(cr => cr.Id == dto.ChatRoomId);
-			if (chatRoom == null) throw new ArgumentNullException(nameof(chatRoom.Id), "No chat room was found.");
-			if (!chatRoom.Participants.Any(p => p.UserId == sender.Id)) throw new ArgumentException("No other partisipants in this chat.");
+			if (chatRoom == null) throw new KeyNotFoundException("No chat room was found.");
+			if (!chatRoom.Participants.Any(p => p.UserId == sender.Id)) throw new UnauthorizedAccessException("User is not a participant in this chat room.");
 
 			var message = new ChatMessage
 			{
@@ -296,7 +364,7 @@ namespace Wavelength.Services
 			}
 			catch (Exception ex)
 			{
-				throw new Exception("Failed to create notification for new chat message.", ex);
+				throw new InvalidOperationException($"Message was created, but failed to create notification for new chat message: {ex.Message}");
 			}
 		}
 
@@ -318,7 +386,7 @@ namespace Wavelength.Services
 				if (!await dbContext.Participants
 					.AnyAsync(p => p.ChatRoomId == dto.ChatRoomId &&
 						p.UserId == user.Id)
-				) throw new ArgumentException("User is unauthorized.", nameof(user));
+				) throw new UnauthorizedAccessException("User is unauthorized.");
 			}
 
 			var query = dbContext.ChatMessages.Where(cm => cm.ChatRoomId == dto.ChatRoomId);
@@ -371,16 +439,16 @@ namespace Wavelength.Services
 		public async Task RemoveChatRoomMessageAsync(int messageId, User user)
 		{
 			var chatMessage = await dbContext.ChatMessages.FirstOrDefaultAsync(cm => cm.Id == messageId);
-			if (chatMessage == null) throw new ArgumentNullException(nameof(chatMessage), "No chat message was found with that id.");
+			if (chatMessage == null) throw new KeyNotFoundException("No chat message was found with that id.");
 
 			if (!user.Roles.Contains(RoleEnum.Admin))
 			{
 				if (!await dbContext.Participants
 					.AnyAsync(p => p.ChatRoomId == chatMessage.ChatRoomId &&
 						p.UserId == user.Id)
-				) throw new ArgumentException("User is not authorized.");
+				) throw new UnauthorizedAccessException("User is not authorized.");
 
-				if (chatMessage.SenderId != user.Id) throw new ArgumentException("User is ");
+				if (chatMessage.SenderId != user.Id) throw new UnauthorizedAccessException("You are not allowed to delete messages sent by other users.");
 			}
 
 			dbContext.ChatMessages.Remove(chatMessage);
