@@ -1,0 +1,143 @@
+meta {
+  name: Discovers a user for the signed-in user to interact with, excluding specified user IDs and users already discovered.
+  type: http
+  seq: 6
+  tags: [
+    User
+  ]
+}
+
+post {
+  url: {{baseUrl}}/User/Discover
+  body: json
+  auth: inherit
+}
+
+body:json {
+  [
+    {}
+  ]
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/User/Discover
+    method: POST
+    mode: json
+    body:json: {
+      [
+        {}
+      ]
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: text/plain
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+        {
+          "id": "",
+          "firstName": "",
+          "lastName": "",
+          "description": "",
+          "pictures": [],
+          "tags": []
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/User/Discover
+    method: POST
+    mode: json
+    body:json: {
+      [
+        {}
+      ]
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "id": "",
+          "firstName": "",
+          "lastName": "",
+          "description": "",
+          "pictures": [],
+          "tags": []
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/User/Discover
+    method: POST
+    mode: json
+    body:json: {
+      [
+        {}
+      ]
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: text/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "id": "",
+          "firstName": "",
+          "lastName": "",
+          "description": "",
+          "pictures": [],
+          "tags": []
+        }
+      '''
+    }
+  }
+}

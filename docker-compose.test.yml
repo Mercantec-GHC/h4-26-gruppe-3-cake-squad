@@ -1,0 +1,46 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: test_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d test_db"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+
+  wavelength:
+    image: ${DOCKER_REGISTRY-}wavelengthapi
+    build:
+      context: .
+      dockerfile: Wavelength/Dockerfile
+    container_name: wavelength-api
+    environment:
+      - ASPNETCORE_ENVIRONMENT=development
+      - ASPNETCORE_URLS=http://+:80
+      - Cors__AllowedOrigins=0.0.0.0
+      - Jwt__Audience=github.com/wavelength
+      - Jwt__Issuer=github.com/wavelength
+      - Jwt__Secret=SuperSecretKeyForJwtTokenGeneration123
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=test_db;Username=test_user;Password=test_password;Pooling=true;
+      - Aes__Key=stHHnftN8kDvKFKWDkMUTqos4lrYtav1u+jhwAzFeyo=
+    ports:
+      - "9080:80"
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - app-network
+      
+networks:
+  app-network:
+    driver: bridge 

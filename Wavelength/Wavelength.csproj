@@ -44,6 +44,20 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<None Include="..\Bruno\**\*">
+			<Pack>False</Pack>
+			<Link>Bruno\%(RecursiveDir)%(Filename)%(Extension)</Link>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="..\.github\workflows\**\*">
+			<Pack>False</Pack>
+			<Link>Workflows\%(RecursiveDir)%(Filename)%(Extension)</Link>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
 	  <ProjectReference Include="..\Commons\Commons.csproj" />
 	</ItemGroup>
 

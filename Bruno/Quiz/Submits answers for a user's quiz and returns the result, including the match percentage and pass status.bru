@@ -1,0 +1,135 @@
+meta {
+  name: Submits answers for a user's quiz and returns the result, including the match percentage and pass status.
+  type: http
+  seq: 4
+  tags: [
+    Quiz
+  ]
+}
+
+post {
+  url: {{baseUrl}}/Quiz/SubmitQuiz
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "userId": "",
+    "answers": []
+  }
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Quiz/SubmitQuiz
+    method: POST
+    mode: json
+    body:json: {
+      {
+        "userId": "",
+        "answers": []
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: text/plain
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+        {
+          "matchPercent": 0,
+          "passed": false
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Quiz/SubmitQuiz
+    method: POST
+    mode: json
+    body:json: {
+      {
+        "userId": "",
+        "answers": []
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "matchPercent": 0,
+          "passed": false
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Quiz/SubmitQuiz
+    method: POST
+    mode: json
+    body:json: {
+      {
+        "userId": "",
+        "answers": []
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: text/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "matchPercent": 0,
+          "passed": false
+        }
+      '''
+    }
+  }
+}

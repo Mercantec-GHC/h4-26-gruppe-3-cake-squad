@@ -1,0 +1,120 @@
+meta {
+  name: Retrieves the list of tags associated with a specified user or the currently signed-in user. (GET)
+  type: http
+  seq: 5
+  tags: [
+    User
+  ]
+}
+
+get {
+  url: {{baseUrl}}/User/Tags/:userId
+  body: none
+  auth: inherit
+}
+
+params:path {
+  userId: 
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/User/Tags/:userId
+    method: GET
+    mode: none
+    params:path: {
+      userId: 
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: text/plain
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+        [
+          ""
+        ]
+      '''
+    }
+  }
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/User/Tags/:userId
+    method: GET
+    mode: none
+    params:path: {
+      userId: 
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        [
+          ""
+        ]
+      '''
+    }
+  }
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/User/Tags/:userId
+    method: GET
+    mode: none
+    params:path: {
+      userId: 
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: text/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        [
+          ""
+        ]
+      '''
+    }
+  }
+}

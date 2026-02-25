@@ -1,0 +1,63 @@
+name: Bruno API tests
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  api-tests:
+    name: Bruno API tests (demo container)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start demo stack (PostgreSQL + Backend)
+        run: |
+          docker compose -f docker-compose.test.yml up -d
+          echo "Venter på at backend svarer på http://localhost:9080 ..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:9080/swagger/v1/swagger.json > /dev/null; then
+              echo "Backend er klar."
+              break
+            fi
+            if [ "$i" -eq 30 ]; then
+              echo "Backend kom ikke op i tide."
+              docker compose -f docker-compose.test.yml logs backend
+              exit 1
+            fi
+            sleep 2
+          done
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Bruno CLI
+        run: npm install -g @usebruno/cli
+
+      - name: Run Bruno collection mod demo-API
+        working-directory: Bruno
+        env:
+          NO_PROXY: "*"
+        run: bru run E2E-UserFlows -r --sandbox=developer --env Test --env-var "baseUrl=http://localhost:9080" --reporter-junit bruno-results.xml --noproxy
+
+      - name: Upload Bruno results (JUnit)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bruno-junit
+          path: Bruno/bruno-results.xml
+
+      - name: Backend logs ved fejl
+        if: failure()
+        run: |
+          docker compose -f docker-compose.test.yml logs --tail=200 backend
+          echo "---"
+          docker compose -f docker-compose.test.yml logs --tail=50 postgres
+
+      - name: Stop demo stack
+        if: always()
+        run: docker compose -f docker-compose.test.yml down -v

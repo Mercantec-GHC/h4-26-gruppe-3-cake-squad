@@ -1,0 +1,135 @@
+meta {
+  name: Retrieves a list of images associated with the specified user or the currently signed-in user. (GET)
+  type: http
+  seq: 11
+  tags: [
+    Images
+  ]
+}
+
+get {
+  url: {{baseUrl}}/Images/Interest/All/:userId
+  body: none
+  auth: inherit
+}
+
+params:path {
+  userId: 
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Images/Interest/All/:userId
+    method: GET
+    mode: none
+    params:path: {
+      userId: 
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: text/plain
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+        [
+          {
+            "name": "",
+            "type": "",
+            "id": 0,
+            "uploadedAt": ""
+          }
+        ]
+      '''
+    }
+  }
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Images/Interest/All/:userId
+    method: GET
+    mode: none
+    params:path: {
+      userId: 
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        [
+          {
+            "name": "",
+            "type": "",
+            "id": 0,
+            "uploadedAt": ""
+          }
+        ]
+      '''
+    }
+  }
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Images/Interest/All/:userId
+    method: GET
+    mode: none
+    params:path: {
+      userId: 
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: text/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        [
+          {
+            "name": "",
+            "type": "",
+            "id": 0,
+            "uploadedAt": ""
+          }
+        ]
+      '''
+    }
+  }
+}

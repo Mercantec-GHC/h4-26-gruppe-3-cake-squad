@@ -1,8 +1,6 @@
 ﻿using Commons.Models.Database;
 using Commons.Models.Dtos;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
 using Wavelength.Data;
 using Wavelength.Repositories;
@@ -24,37 +22,43 @@ namespace Wavelength.Services
         private readonly JwtService jwtService;
         private readonly EmailVaidationRepository emailVaidation;
         private readonly MailService mailService;
+        private readonly IHostEnvironment environment;
 
         /// <summary>
         /// Initializes a new instance of the AuthService class with the specified dependencies required for
-        /// authentication and email validation operations.
+        /// authentication and related operations.
         /// </summary>
         /// <param name="dbContext">The database context used for accessing and managing user data.</param>
-        /// <param name="jwtService">The service used to generate and validate JSON Web Tokens (JWT) for authentication.</param>
-        /// <param name="emailVaidation">The repository used to manage email validation processes.</param>
-        /// <param name="mailService">The service used to send email messages for authentication and validation purposes.</param>
-        public AuthService(AppDbContext dbContext, JwtService jwtService, EmailVaidationRepository emailVaidation, MailService mailService)
+        /// <param name="jwtService">The service responsible for generating and validating JSON Web Tokens (JWT) for authentication.</param>
+        /// <param name="emailVaidation">The repository used to manage email validation processes and records.</param>
+        /// <param name="mailService">The service used to send email notifications related to authentication, such as verification or password
+        /// reset emails.</param>
+        /// <param name="environment">The host environment information, used to determine the application's current environment (e.g.,
+        /// development, production).</param>
+        public AuthService(AppDbContext dbContext, JwtService jwtService, EmailVaidationRepository emailVaidation, MailService mailService, IHostEnvironment environment)
         {
             this.dbContext = dbContext;
             this.jwtService = jwtService;
             this.emailVaidation = emailVaidation;
             this.mailService = mailService;
+            this.environment = environment;
         }
 
         /// <summary>
-        /// Registers a new user with the provided registration details asynchronously. Validates user input and creates
-        /// a new user account if all requirements are met.
+        /// Registers a new user account with the provided registration details and initiates the email verification
+        /// process.
         /// </summary>
-        /// <remarks>If the provided email address is already associated with an unverified user, the
-        /// existing unverified user will be removed and registration will proceed. After successful registration, an
-        /// email validation entry is created for the new user.</remarks>
+        /// <remarks>If the provided email address is already associated with an unverified account, the
+        /// existing unverified user will be removed and registration will proceed. A verification email is sent to the
+        /// user as part of the registration process.</remarks>
         /// <param name="dto">An object containing the user's registration information, including first name, last name, email address,
         /// password, and birthday.</param>
-        /// <returns>A task that represents the asynchronous registration operation.</returns>
-        /// <exception cref="ArgumentException">Thrown if any of the registration details are invalid, such as missing required fields, invalid email
-        /// format, password not meeting security requirements, user is under 18 years old, or the email is already in
-        /// use by a verified account.</exception>
-        public async Task RegisterUserAsync(RegisterDto dto)
+        /// <returns>A task that represents the asynchronous operation. The task result contains a RegisterResponseDto with the
+        /// new user's identifier and, in development environments, the email validation code.</returns>
+        /// <exception cref="ArgumentException">Thrown if any required registration information is missing, the email format is invalid, the password does
+        /// not meet security requirements, the user is under 18 years old, or the email address is already associated
+        /// with a verified account.</exception>
+        public async Task<RegisterResponseDto> RegisterUserAsync(RegisterDto dto)
         {
             // Validate input
             if (string.IsNullOrWhiteSpace(dto.FirstName)) throw new ArgumentException("First name is required.");
@@ -100,6 +104,12 @@ namespace Wavelength.Services
                 { "Code", validation.ValidationCode }
             });
             mailService.SendEmail(newUser.Email, "Velkommen til Wavelength", body);
+
+            return new RegisterResponseDto
+            {
+                UserId = newUser.Id,
+                ValidationCode = environment.IsDevelopment() ? validation.ValidationCode : null
+            };
         }
 
         /// <summary>

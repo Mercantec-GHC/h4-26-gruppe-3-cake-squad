@@ -1,0 +1,54 @@
+meta {
+  name: Retrieves the image associated with the specified interest.
+  type: http
+  seq: 6
+  tags: [
+    Images
+  ]
+}
+
+get {
+  url: {{baseUrl}}/Images/Interest/:id
+  body: none
+  auth: inherit
+}
+
+params:query {
+  ~miniature: 
+}
+
+params:path {
+  id: 
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Images/Interest/:id
+    method: GET
+    mode: none
+    params:query: {
+      ~miniature: 
+    }
+  
+    params:path: {
+      id: 
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

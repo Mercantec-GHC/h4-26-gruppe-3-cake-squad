@@ -1,0 +1,144 @@
+meta {
+  name: Retrieves the list of quiz questions assigned to the specified user.
+  type: http
+  seq: 3
+  tags: [
+    Quiz
+  ]
+}
+
+get {
+  url: {{baseUrl}}/Quiz/UserQuiz/:userId
+  body: none
+  auth: inherit
+}
+
+params:path {
+  userId: 
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Quiz/UserQuiz/:userId
+    method: GET
+    mode: none
+    params:path: {
+      userId: 
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: text/plain
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+        [
+          {
+            "questionText": "",
+            "type": 0,
+            "options": [
+              {
+                "text": ""
+              }
+            ]
+          }
+        ]
+      '''
+    }
+  }
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Quiz/UserQuiz/:userId
+    method: GET
+    mode: none
+    params:path: {
+      userId: 
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        [
+          {
+            "questionText": "",
+            "type": 0,
+            "options": [
+              {
+                "text": ""
+              }
+            ]
+          }
+        ]
+      '''
+    }
+  }
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Quiz/UserQuiz/:userId
+    method: GET
+    mode: none
+    params:path: {
+      userId: 
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: text/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        [
+          {
+            "questionText": "",
+            "type": 0,
+            "options": [
+              {
+                "text": ""
+              }
+            ]
+          }
+        ]
+      '''
+    }
+  }
+}
