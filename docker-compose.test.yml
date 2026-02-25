@@ -26,6 +26,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=development
       - ASPNETCORE_URLS=http://+:80
+      - Cors__AllowedOrigins=0.0.0.0
       - Jwt__Audience=github.com/wavelength
       - Jwt__Issuer=github.com/wavelength
       - Jwt__Secret=SuperSecretKeyForJwtTokenGeneration123
