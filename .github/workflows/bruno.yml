@@ -42,7 +42,7 @@ jobs:
         working-directory: Bruno
         env:
           NO_PROXY: "*"
-        run: bru run E2E-UserFlows -r --sandbox=developer --env Kahoot --env-var "baseUrl=http://localhost:9080" --reporter-junit bruno-results.xml --noproxy
+        run: bru run E2E-UserFlows -r --sandbox=developer --env Test --env-var "baseUrl=http://localhost:9080" --reporter-junit bruno-results.xml --noproxy
 
       - name: Upload Bruno results (JUnit)
         if: always()
