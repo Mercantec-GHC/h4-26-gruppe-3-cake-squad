@@ -1,0 +1,126 @@
+meta {
+  name: Retrieves the details of a chat room by its unique identifier.
+  type: http
+  seq: 4
+  tags: [
+    Chat
+  ]
+}
+
+get {
+  url: {{baseUrl}}/Chat/:chatRoomId
+  body: none
+  auth: inherit
+}
+
+params:path {
+  chatRoomId: 
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Chat/:chatRoomId
+    method: GET
+    mode: none
+    params:path: {
+      chatRoomId: 
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: text/plain
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+        {
+          "id": "",
+          "name": "",
+          "participants": []
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Chat/:chatRoomId
+    method: GET
+    mode: none
+    params:path: {
+      chatRoomId: 
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "id": "",
+          "name": "",
+          "participants": []
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Chat/:chatRoomId
+    method: GET
+    mode: none
+    params:path: {
+      chatRoomId: 
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: text/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "id": "",
+          "name": "",
+          "participants": []
+        }
+      '''
+    }
+  }
+}

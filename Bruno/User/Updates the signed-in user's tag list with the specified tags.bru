@@ -1,0 +1,50 @@
+meta {
+  name: Updates the signed-in user's tag list with the specified tags.
+  type: http
+  seq: 3
+  tags: [
+    User
+  ]
+}
+
+put {
+  url: {{baseUrl}}/User/SetTags
+  body: json
+  auth: inherit
+}
+
+body:json {
+  [
+    {}
+  ]
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/User/SetTags
+    method: PUT
+    mode: json
+    body:json: {
+      [
+        {}
+      ]
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

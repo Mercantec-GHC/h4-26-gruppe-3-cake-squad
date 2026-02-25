@@ -1,0 +1,46 @@
+meta {
+  name: Marks the specified user as dismissed by the currently signed-in user.
+  type: http
+  seq: 4
+  tags: [
+    UserVisibility
+  ]
+}
+
+post {
+  url: {{baseUrl}}/UserVisibility/Dismissed
+  body: none
+  auth: inherit
+}
+
+params:query {
+  ~targetId: 
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/UserVisibility/Dismissed
+    method: POST
+    mode: none
+    params:query: {
+      ~targetId: 
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

@@ -1,0 +1,46 @@
+meta {
+  name: Removes the signed-in user from the specified chat room.
+  type: http
+  seq: 5
+  tags: [
+    Chat
+  ]
+}
+
+delete {
+  url: {{baseUrl}}/Chat/leave/:chatRoomId
+  body: none
+  auth: inherit
+}
+
+params:path {
+  chatRoomId: 
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Chat/leave/:chatRoomId
+    method: DELETE
+    mode: none
+    params:path: {
+      chatRoomId: 
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

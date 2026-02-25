@@ -1,0 +1,50 @@
+meta {
+  name: 2. Validate Email
+  type: http
+  seq: 2
+  tags: [
+    Auth
+  ]
+}
+
+post {
+  url: {{baseUrl}}/Auth/verifyEmail
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "code": "{{validationCode}}"
+  }
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Auth/verifyEmail
+    method: POST
+    mode: json
+    body:json: {
+      {
+        "code": ""
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

@@ -1,0 +1,46 @@
+meta {
+  name: Blocks the specified user for the currently signed-in user.
+  type: http
+  seq: 3
+  tags: [
+    UserVisibility
+  ]
+}
+
+post {
+  url: {{baseUrl}}/UserVisibility/Block
+  body: none
+  auth: inherit
+}
+
+params:query {
+  ~targetId: 
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/UserVisibility/Block
+    method: POST
+    mode: none
+    params:query: {
+      ~targetId: 
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

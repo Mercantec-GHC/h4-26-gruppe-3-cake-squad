@@ -1,0 +1,39 @@
+meta {
+  name: Deletes the currently signed-in user's avatar image.
+  type: http
+  seq: 4
+  tags: [
+    Images
+  ]
+}
+
+delete {
+  url: {{baseUrl}}/Images/Avatar
+  body: none
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Images/Avatar
+    method: DELETE
+    mode: none
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

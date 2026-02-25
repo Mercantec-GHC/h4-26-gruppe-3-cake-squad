@@ -1,0 +1,46 @@
+meta {
+  name: Deletes the user visibility entry with the specified identifier.
+  type: http
+  seq: 2
+  tags: [
+    UserVisibility
+  ]
+}
+
+delete {
+  url: {{baseUrl}}/UserVisibility/admin/delete
+  body: none
+  auth: inherit
+}
+
+params:query {
+  ~visibilityId: 
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/UserVisibility/admin/delete
+    method: DELETE
+    mode: none
+    params:query: {
+      ~visibilityId: 
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

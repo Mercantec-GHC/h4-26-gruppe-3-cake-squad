@@ -1,0 +1,39 @@
+meta {
+  name: Returns the avatar image for the specified user or the currently signed-in user.
+  type: http
+  seq: 3
+  tags: [
+    Images
+  ]
+}
+
+get {
+  url: {{baseUrl}}/Images/Avatar
+  body: none
+  auth: inherit
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Images/Avatar
+    method: GET
+    mode: none
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

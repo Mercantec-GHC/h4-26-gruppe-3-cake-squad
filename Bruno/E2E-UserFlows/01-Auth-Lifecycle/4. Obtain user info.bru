@@ -1,0 +1,129 @@
+meta {
+  name: 5. Obtain user info
+  type: http
+  seq: 5
+  tags: [
+    Auth
+  ]
+}
+
+get {
+  url: {{baseUrl}}/Auth/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authJwtToken}}
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Auth/me
+    method: GET
+    mode: none
+  }
+  
+  response: {
+    headers: {
+      Content-Type: text/plain
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+        {
+          "id": "",
+          "firstName": "",
+          "lastName": "",
+          "birthday": "",
+          "email": "",
+          "description": "",
+          "tags": []
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Auth/me
+    method: GET
+    mode: none
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "id": "",
+          "firstName": "",
+          "lastName": "",
+          "birthday": "",
+          "email": "",
+          "description": "",
+          "tags": []
+        }
+      '''
+    }
+  }
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Auth/me
+    method: GET
+    mode: none
+  }
+  
+  response: {
+    headers: {
+      Content-Type: text/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "id": "",
+          "firstName": "",
+          "lastName": "",
+          "birthday": "",
+          "email": "",
+          "description": "",
+          "tags": []
+        }
+      '''
+    }
+  }
+}

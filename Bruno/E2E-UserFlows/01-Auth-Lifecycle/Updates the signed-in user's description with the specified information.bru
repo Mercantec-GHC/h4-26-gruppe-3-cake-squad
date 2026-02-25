@@ -1,0 +1,54 @@
+meta {
+  name: 6. Update user information.
+  type: http
+  seq: 6
+  tags: [
+    Auth
+  ]
+}
+
+put {
+  url: {{baseUrl}}/Auth/updateDescription
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authJwtToken}}
+}
+
+body:json {
+  {
+    "description": "The is the E2E Test User Account."
+  }
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Auth/updateDescription
+    method: PUT
+    mode: json
+    body:json: {
+      {
+        "description": ""
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}
