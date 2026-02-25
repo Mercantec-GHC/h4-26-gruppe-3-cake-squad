@@ -32,8 +32,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      seq:
-        condition: service_started
     networks:
       - app-network
       
