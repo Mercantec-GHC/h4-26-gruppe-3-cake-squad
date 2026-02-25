@@ -1,0 +1,76 @@
+meta {
+  name: Updates the quiz associated with the signed-in user's questionnaire.
+  type: http
+  seq: 2
+  tags: [
+    Quiz
+  ]
+}
+
+post {
+  url: {{baseUrl}}/Quiz/EditQuiz
+  body: json
+  auth: inherit
+}
+
+body:json {
+  {
+    "scoreRequired": 0,
+    "questions": [
+      {
+        "questionText": "",
+        "type": 0,
+        "options": [
+          {
+            "text": ""
+          }
+        ],
+        "correctOptionIndex": 0,
+        "score": 0
+      }
+    ]
+  }
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Quiz/EditQuiz
+    method: POST
+    mode: json
+    body:json: {
+      {
+        "scoreRequired": 0,
+        "questions": [
+          {
+            "questionText": "",
+            "type": 0,
+            "options": [
+              {
+                "text": ""
+              }
+            ],
+            "correctOptionIndex": 0,
+            "score": 0
+          }
+        ]
+      }
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

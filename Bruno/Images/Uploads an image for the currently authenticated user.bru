@@ -1,0 +1,56 @@
+meta {
+  name: Uploads an image for the currently authenticated user.
+  type: http
+  seq: 1
+  tags: [
+    Images
+  ]
+}
+
+post {
+  url: {{baseUrl}}/Images/Upload
+  body: multipartForm
+  auth: inherit
+}
+
+params:query {
+  ~Name: 
+  ~type: 
+}
+
+body:multipart-form {
+  File: @file()
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Images/Upload
+    method: POST
+    mode: multipartForm
+    params:query: {
+      ~Name: 
+      ~type: 
+    }
+  
+    body:multipart-form: {
+      File: @file()
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}

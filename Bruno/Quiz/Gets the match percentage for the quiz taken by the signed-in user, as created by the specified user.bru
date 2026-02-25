@@ -1,0 +1,114 @@
+meta {
+  name: Gets the match percentage for the quiz taken by the signed-in user, as created by the specified user.
+  type: http
+  seq: 5
+  tags: [
+    Quiz
+  ]
+}
+
+get {
+  url: {{baseUrl}}/Quiz/MatchPercentage/:userId
+  body: none
+  auth: inherit
+}
+
+params:path {
+  userId: 
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Quiz/MatchPercentage/:userId
+    method: GET
+    mode: none
+    params:path: {
+      userId: 
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: text/plain
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+        0
+      '''
+    }
+  }
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Quiz/MatchPercentage/:userId
+    method: GET
+    mode: none
+    params:path: {
+      userId: 
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: application/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        0
+      '''
+    }
+  }
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Quiz/MatchPercentage/:userId
+    method: GET
+    mode: none
+    params:path: {
+      userId: 
+    }
+  }
+  
+  response: {
+    headers: {
+      Content-Type: text/json
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        0
+      '''
+    }
+  }
+}

@@ -34,18 +34,18 @@ namespace Wavelength.Controllers
         }
 
         /// <summary>
-        /// Registers a new user account using the specified registration details.
+        /// Registers a new user account using the provided registration details.
         /// </summary>
         /// <param name="dto">An object containing the user's registration information. Cannot be null.</param>
-        /// <returns>A 201 Created result if registration is successful; otherwise, a 400 Bad Request result with an error
-        /// message if the registration details are invalid.</returns>
+        /// <returns>An ActionResult containing a RegisterResponseDto with the result of the registration. Returns a BadRequest
+        /// result if the registration data is invalid.</returns>
         [HttpPost("register")]
-        public async Task<ActionResult> RegisterAsync(RegisterDto dto)
+        public async Task<ActionResult<RegisterResponseDto>> RegisterAsync(RegisterDto dto)
         {
             try
             {
-                await authService.RegisterUserAsync(dto);
-                return Created();
+                var response = await authService.RegisterUserAsync(dto);
+                return Ok(response);
             }
             catch (ArgumentException ex)
             {

@@ -1,0 +1,46 @@
+meta {
+  name: Deletes a chat message with the specified identifier from the chat room.
+  type: http
+  seq: 9
+  tags: [
+    Chat
+  ]
+}
+
+delete {
+  url: {{baseUrl}}/Chat/messages/:messageId
+  body: none
+  auth: inherit
+}
+
+params:path {
+  messageId: 
+}
+
+example {
+  name: 200 Response
+  description: OK
+  
+  request: {
+    url: {{baseUrl}}/Chat/messages/:messageId
+    method: DELETE
+    mode: none
+    params:path: {
+      messageId: 
+    }
+  }
+  
+  response: {
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: text
+      content: '''
+  
+      '''
+    }
+  }
+}
