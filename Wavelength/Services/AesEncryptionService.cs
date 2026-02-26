@@ -9,7 +9,7 @@ namespace Wavelength.Services
 	/// string data. The encryption key must be supplied via configuration as a Base64-encoded string. The service is
 	/// intended for scenarios where symmetric encryption is required for sensitive data. Thread safety is not guaranteed
 	/// if the underlying key is modified concurrently.</remarks>
-	public class AesEncryptionService
+	public class AesEncryptionService : IAesEncryptionService
 	{
 		private readonly byte[] _key;
 
