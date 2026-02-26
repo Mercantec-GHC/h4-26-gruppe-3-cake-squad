@@ -48,7 +48,7 @@ namespace Microsoft.Extensions.DependencyInjection
 			// Add application services
 			services.AddScoped<AuthService>();
             services.AddScoped<OauthService>();
-            services.AddScoped<NotificationService>();
+            services.AddScoped<INotificationService, NotificationService>();
 			services.AddScoped<ChatService>();
 			services.AddScoped<ImageService>();
 			services.AddScoped<QuizService>();
@@ -56,7 +56,7 @@ namespace Microsoft.Extensions.DependencyInjection
 			services.AddScoped<UserVisibilityService>();
 
 			// Register AesEncryptionService.
-			services.AddSingleton<AesEncryptionService>();
+			services.AddSingleton<IAesEncryptionService, AesEncryptionService>();
 
 			return services;
 		}

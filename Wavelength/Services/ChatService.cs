@@ -19,8 +19,8 @@ namespace Wavelength.Services
 	public class ChatService
 	{
 		private readonly AppDbContext dbContext;
-		private readonly AesEncryptionService aesEncryption;
-		private readonly NotificationService notificationService;
+		private readonly IAesEncryptionService aesEncryption;
+		private readonly INotificationService notificationService;
 
 		/// <summary>
 		/// Initializes a new instance of the ChatService class using the specified database context, encryption service, and
@@ -29,7 +29,7 @@ namespace Wavelength.Services
 		/// <param name="dbContext">The database context used to access and manage chat-related data.</param>
 		/// <param name="aesEncryption">The AES encryption service used to encrypt and decrypt sensitive chat messages.</param>
 		/// <param name="notificationService">The notification service used to send alerts and updates related to chat activities.</param>
-		public ChatService(AppDbContext dbContext, AesEncryptionService aesEncryption, NotificationService notificationService)
+		public ChatService(AppDbContext dbContext, IAesEncryptionService aesEncryption, INotificationService notificationService)
 		{
 			this.dbContext = dbContext;
 			this.aesEncryption = aesEncryption;

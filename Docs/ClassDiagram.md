@@ -1,4 +1,4 @@
-```mermaid 
+ ```mermaid 
 
 ---
 title: Class Diagram
@@ -20,9 +20,10 @@ classDiagram
         + string LastName
         + DateOnly Birthday
         + string Description
-        + json<TagsEnum> ValueTags
         + string Email
         + string HashedPassword
+        + json<TagsEnum> ValueTags
+        + bool IsEmnailVerified
     }
 
     class Questionnaire {
@@ -47,7 +48,9 @@ classDiagram
         + DateTime UpdatedAt
         + string UserId
         + int<PictureTypeEnum> PictureType
-        + string PPictureBase64
+        + string Name
+        + string Type
+        + byte Data
     }
 
     class RefreshToken {
@@ -74,7 +77,6 @@ classDiagram
         + string PlayerId
         + string QuizOwnerId
         + int MatchProcent
-        + bool IsUserVisible
     }
 
     class Participant {
@@ -101,6 +103,35 @@ classDiagram
         + string MessageContent
     }
 
+    class UserVisibility {
+        + int Id
+        + DateTime CreatedAt
+        + DateTime UpdatedAt
+        + string SourceUserId
+        + string TargetUserId
+        + int<UserVisibilityEnum> Visibility
+    }
+
+    class EmailValidation {
+        + int Id
+        + DateTime CreatedAt
+        + DateTime UpdatedAt
+        + string UserId
+        + string ValidationCode
+        + DateTime Expiration
+    }
+
+    class Notification {
+        + string Id
+        + DateTime CreatedAt
+        + DateTime UpdatedAt
+        + string SenderId
+        + string TargetId
+        + string? ObjectId
+        + string Content
+        + int<NotificationTypeEnum> Type
+    }
+
 Common --|> User
 Common --|> Questionnaire
 Common --|> QuestionPicture
@@ -111,6 +142,9 @@ Common --|> QuestionScore
 Common --|> Participant
 Common --|> ChatRoom
 Common --|> ChatMessage
+Common --|> UserVisibility
+Common --|> EmailValidation
+Common --|> Notification
 
 Participant --> User
 Participant --> ChatRoom
@@ -124,3 +158,6 @@ Questionnaire --> User
 ProfilePicture --> User
 RefreshToken --> User
 QuestionScore --> User
+UserVisibility --> User
+EmailValidation --> User
+Notification --> User

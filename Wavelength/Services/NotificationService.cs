@@ -13,7 +13,7 @@ namespace Wavelength.Services
 	/// methods for creating notifications for both general alerts and message notifications, as well as retrieving
 	/// notifications for a specific user. Ensure that the provided user IDs and content are valid to avoid exceptions
 	/// during operations.</remarks>
-	public class NotificationService
+	public class NotificationService : INotificationService
 	{
 		private readonly AppDbContext dbContext;
 
